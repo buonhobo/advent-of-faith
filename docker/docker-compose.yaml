@@ -1,0 +1,29 @@
+services:
+  advent-of-faith:
+    image: advent-of-faith
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASS}@postgres:5432/${POSTGRES_DB}
+      - BIND_LISTENER=0.0.0.0:80
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASS}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+
+  cloudflared:
+    image: cloudflare/cloudflared
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TOKEN}
+
+volumes:
+  pgdata:

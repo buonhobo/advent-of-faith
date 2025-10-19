@@ -1,8 +1,11 @@
-use crate::domain::user::{User, UserRole};
+use crate::model::user::{User, UserRole};
 use crate::AppState;
-use axum::extract::{FromRef, FromRequestParts};
+use axum::extract::OptionalFromRequestParts;
+use axum::extract::{Request, State};
 use axum::http::request::Parts;
-use axum::RequestPartsExt;
+use axum::http::StatusCode;
+use axum::middleware::Next;
+use axum::response::{IntoResponse, Redirect, Response};
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use chrono::{DateTime, Utc};
@@ -69,18 +72,20 @@ impl SessionStore {
         } else {
             sqlx::query_as!(
                 SessionRow,
-                r#"SELECT 
-                                        u.id as user_id, u.username, u.role as "role:_",
-                                        s.id, s.created_at, s.expires_at
-                                        FROM user_sessions as s
-                                        JOIN users as u ON u.id = s.user_id
-                                        WHERE s.id = $1"#,
+                r#"
+                SELECT
+                    u.id as user_id, u.username, u.role as "role:_",
+                    s.id, s.created_at, s.expires_at
+                FROM user_sessions as s
+                JOIN users as u ON u.id = s.user_id
+                WHERE s.id = $1
+                "#,
                 uuid
             )
             .fetch_optional(&self.db_pool)
             .await
             .ok()?
-            .map(|sr| sr.into())
+            .map(SessionRow::into)
         }
     }
 
@@ -107,8 +112,8 @@ impl SessionStore {
         )
         .fetch_one(&self.db_pool)
         .await
-        .map_err(|e| e.to_string())
-        .map(|sr| sr.into())?;
+        .map_err(|_| "Error from database when making a new session")
+        .map(SessionRow::into)?;
 
         let uuid = session.id;
         self.cached_sessions.insert(session.id, session);
@@ -116,28 +121,43 @@ impl SessionStore {
     }
 }
 
-#[derive(Clone)]
-pub struct CurrentUser(pub Option<User>);
-
-impl<S> FromRequestParts<S> for CurrentUser
+impl<S> OptionalFromRequestParts<S> for User
 where
-    AppState: FromRef<S>,
     S: Send + Sync,
 {
     type Rejection = Infallible;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        if let Some(token) = parts
-            .extract::<CookieJar>()
-            .await
-            .unwrap()
-            .get("token")
-            .map(Cookie::value)
-        {
-            let state = AppState::from_ref(state);
-            Ok(Self(state.session_store.read().await.get_user(token).await))
-        } else {
-            Ok(Self(None))
-        }
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &S,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        Ok(parts.extensions.get::<Option<User>>().cloned().flatten())
     }
+}
+
+pub async fn require_logged_out(
+    user: Option<User>,
+    request: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    if user.is_none() {
+        Ok(next.run(request).await)
+    } else {
+        Ok(Redirect::to("/").into_response())
+    }
+}
+
+pub async fn authenticate_user(
+    State(state): State<AppState>,
+    jar: CookieJar,
+    mut req: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    if let Some(token) = jar.get("token").map(Cookie::value) {
+        if let Some(user) = state.session_store.read().await.get_user(token).await {
+            req.extensions_mut().insert(Some(user));
+        };
+    };
+
+    Ok(next.run(req).await)
 }

@@ -1,4 +1,4 @@
-use crate::domain::user::{User, UserRole};
+use crate::model::user::{User, UserRole};
 use crate::web::handler::LoginCredentials;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
@@ -29,16 +29,17 @@ impl UserRepository {
         let res:UserRow = sqlx::query_as!(UserRow, "select id, username, password_hash, role as \"role: _\" from users where username = ($1)",user.username)
             .fetch_optional(&self.db_pool)
             .await
-            .expect("Couldn't authenticate user")
+            .map_err(|_|"Database connection failed")?
             .ok_or("Couldn't find this user")?;
 
-        Argon2::default()
-            .verify_password(
-                user.password.as_bytes(),
-                &PasswordHash::new(&res.password_hash).unwrap(),
-            )
-            .map(|_| res.into())
-            .map_err(|_| "Invalid credentials")
+        match Argon2::default().verify_password(
+            user.password.as_bytes(),
+            &PasswordHash::new(&res.password_hash)
+                .map_err(|_| "Invalid password_hash from database")?,
+        ) {
+            Ok(_) => Ok(res.into()),
+            Err(_) => Err("Invalid credentials"),
+        }
     }
 
     pub async fn add_user(&self, user: &LoginCredentials, role: UserRole) -> Result<User, String> {
@@ -54,8 +55,7 @@ impl UserRepository {
 
     fn hash_password(password: &str) -> String {
         let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        argon2
+        Argon2::default()
             .hash_password(password.as_bytes(), &salt)
             .unwrap()
             .to_string()

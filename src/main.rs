@@ -1,12 +1,12 @@
-mod domain;
+mod model;
 mod persistence;
 mod service;
 mod web;
 
 use crate::persistence::repository::UserRepository;
-use crate::service::authentication::SessionStore;
+use crate::service::authentication::{authenticate_user, require_logged_out, SessionStore};
 use crate::web::handler::{login_page, login_post, signup_page, signup_post};
-use axum::{routing::get, Router};
+use axum::{middleware, routing::get, Router};
 use sqlx::PgPool;
 use std::env;
 use std::sync::Arc;
@@ -37,9 +37,14 @@ async fn main() {
 
     // build our application with a single route
     let app = Router::new()
-        .route("/", get(web_handler))
         .route("/login", get(login_page).post(login_post))
         .route("/signup", get(signup_page).post(signup_post))
+        .route_layer(middleware::from_fn(require_logged_out))
+        .route("/", get(web_handler))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            authenticate_user,
+        ))
         .with_state(state.clone());
 
     // run our app with hyper, listening globally on port 8080

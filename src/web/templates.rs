@@ -1,4 +1,4 @@
-use crate::domain::user::User;
+use crate::model::user::User;
 use crate::web::handler::LoginCredentials;
 use askama::Template;
 

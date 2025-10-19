@@ -1,5 +1,4 @@
-use crate::domain::user::UserRole;
-use crate::service::authentication::CurrentUser;
+use crate::model::user::{User, UserRole};
 use crate::web::templates::{HelloTemplate, HomeTemplate, LoginTemplate, SignupTemplate};
 use crate::AppState;
 use askama::Template;
@@ -10,7 +9,7 @@ use axum::Form;
 use axum_extra::extract::cookie::{Cookie, CookieJar, Expiration, SameSite};
 use serde::Deserialize;
 
-pub async fn web_handler(CurrentUser(user): CurrentUser) -> Result<impl IntoResponse, StatusCode> {
+pub async fn web_handler(user: Option<User>) -> Result<impl IntoResponse, StatusCode> {
     if let Some(user) = user {
         Ok(Html(
             HelloTemplate::new(user)
@@ -26,11 +25,7 @@ pub async fn web_handler(CurrentUser(user): CurrentUser) -> Result<impl IntoResp
     }
 }
 
-pub async fn login_page(CurrentUser(user): CurrentUser) -> Result<impl IntoResponse, StatusCode> {
-    if user.is_some() {
-        return Ok(Redirect::to("/").into_response());
-    }
-
+pub async fn login_page() -> Result<impl IntoResponse, StatusCode> {
     LoginTemplate::empty()
         .render()
         .map(|v| Html(v).into_response())
@@ -78,11 +73,7 @@ pub async fn login_post(
     Ok((cookie_jar, response))
 }
 
-pub async fn signup_page(CurrentUser(user): CurrentUser) -> Result<Response, StatusCode> {
-    if user.is_some() {
-        return Ok(Redirect::to("/").into_response());
-    }
-
+pub async fn signup_page() -> Result<Response, StatusCode> {
     SignupTemplate::empty()
         .render()
         .map(|v| Html(v).into_response())

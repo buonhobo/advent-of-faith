@@ -10,10 +10,8 @@ pub struct UserRepository {
 }
 
 impl UserRepository {
-    pub fn new(db_pool:PgPool) -> Self {
-        UserRepository {
-            db_pool
-        }
+    pub fn new(db_pool: PgPool) -> Self {
+        UserRepository { db_pool }
     }
 
     pub async fn get_user(&self, user: User) -> Option<User> {

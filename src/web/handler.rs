@@ -10,9 +10,7 @@ use axum::Form;
 use axum_extra::extract::cookie::{Cookie, CookieJar, Expiration, SameSite};
 use serde::Deserialize;
 
-pub async fn web_handler(
-    CurrentUser(user): CurrentUser,
-) -> Result<impl IntoResponse, StatusCode> {
+pub async fn web_handler(CurrentUser(user): CurrentUser) -> Result<impl IntoResponse, StatusCode> {
     if let Some(user) = user {
         Ok(Html(
             HelloTemplate::new(user)
@@ -28,9 +26,7 @@ pub async fn web_handler(
     }
 }
 
-pub async fn login_page(
-    CurrentUser(user): CurrentUser,
-) -> Result<impl IntoResponse, StatusCode> {
+pub async fn login_page(CurrentUser(user): CurrentUser) -> Result<impl IntoResponse, StatusCode> {
     if user.is_some() {
         return Ok(Redirect::to("/").into_response());
     }
@@ -64,7 +60,13 @@ pub async fn login_post(
 
     if let Some(user) = user {
         response = Redirect::to("/").into_response();
-        let token = state.session_store.write().await.add_user(user).await.unwrap();
+        let token = state
+            .session_store
+            .write()
+            .await
+            .add_user(user)
+            .await
+            .unwrap();
         cookie_jar = cookie_jar.add(get_cookie(token.to_string()));
     } else {
         response = LoginTemplate::with_message("Invalid username or password".to_owned(), login)
@@ -103,7 +105,13 @@ pub async fn signup_post(
 
     match user {
         Ok(user) => {
-            let token = state.session_store.write().await.add_user(user).await.unwrap();
+            let token = state
+                .session_store
+                .write()
+                .await
+                .add_user(user)
+                .await
+                .unwrap();
             cookie_jar = cookie_jar.add(get_cookie(token.to_string()));
             redirect = Redirect::to("/").into_response();
         }

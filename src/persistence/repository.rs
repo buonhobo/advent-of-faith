@@ -4,18 +4,15 @@ use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use sqlx::{FromRow, PgPool};
-use std::env;
 
 pub struct UserRepository {
     db_pool: PgPool,
 }
 
 impl UserRepository {
-    pub async fn new() -> Self {
+    pub fn new(db_pool:PgPool) -> Self {
         UserRepository {
-            db_pool: PgPool::connect(&env::var("DATABASE_URL").expect("DATABASE_URL not set!"))
-                .await
-                .expect("DATABASE connection failed!"),
+            db_pool
         }
     }
 

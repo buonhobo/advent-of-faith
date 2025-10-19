@@ -1,16 +1,17 @@
-use crate::domain::user::{User, UserRole};
+use crate::domain::user::UserRole;
+use crate::service::authentication::CurrentUser;
 use crate::web::templates::{HelloTemplate, HomeTemplate, LoginTemplate, SignupTemplate};
 use crate::AppState;
 use askama::Template;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Redirect, Response};
-use axum::{Extension, Form};
+use axum::Form;
 use axum_extra::extract::cookie::{Cookie, CookieJar, Expiration, SameSite};
 use serde::Deserialize;
 
 pub async fn web_handler(
-    Extension(user): Extension<Option<User>>,
+    CurrentUser(user): CurrentUser,
 ) -> Result<impl IntoResponse, StatusCode> {
     if let Some(user) = user {
         Ok(Html(
@@ -28,7 +29,7 @@ pub async fn web_handler(
 }
 
 pub async fn login_page(
-    Extension(user): Extension<Option<User>>,
+    CurrentUser(user): CurrentUser,
 ) -> Result<impl IntoResponse, StatusCode> {
     if user.is_some() {
         return Ok(Redirect::to("/").into_response());
@@ -47,13 +48,13 @@ pub struct LoginCredentials {
 }
 
 pub async fn login_post(
-    State(repo): State<AppState>,
+    State(state): State<AppState>,
     Form(login): Form<LoginCredentials>,
 ) -> Result<(CookieJar, Response), StatusCode> {
     let mut cookie_jar = CookieJar::new();
     let response;
 
-    let user = repo
+    let user = state
         .user_repository
         .read()
         .await
@@ -63,8 +64,8 @@ pub async fn login_post(
 
     if let Some(user) = user {
         response = Redirect::to("/").into_response();
-        let token = repo.session_store.write().await.add_user(user);
-        cookie_jar = cookie_jar.add(get_cookie(token));
+        let token = state.session_store.write().await.add_user(user).await.unwrap();
+        cookie_jar = cookie_jar.add(get_cookie(token.to_string()));
     } else {
         response = LoginTemplate::with_message("Invalid username or password".to_owned(), login)
             .render()
@@ -75,7 +76,7 @@ pub async fn login_post(
     Ok((cookie_jar, response))
 }
 
-pub async fn signup_page(Extension(user): Extension<Option<User>>) -> Result<Response, StatusCode> {
+pub async fn signup_page(CurrentUser(user): CurrentUser) -> Result<Response, StatusCode> {
     if user.is_some() {
         return Ok(Redirect::to("/").into_response());
     }
@@ -87,10 +88,10 @@ pub async fn signup_page(Extension(user): Extension<Option<User>>) -> Result<Res
 }
 
 pub async fn signup_post(
-    State(repo): State<AppState>,
+    State(state): State<AppState>,
     Form(login): Form<LoginCredentials>,
 ) -> Result<(CookieJar, Response), StatusCode> {
-    let user = repo
+    let user = state
         .user_repository
         .write()
         .await
@@ -102,8 +103,8 @@ pub async fn signup_post(
 
     match user {
         Ok(user) => {
-            let token = repo.session_store.write().await.add_user(user);
-            cookie_jar = cookie_jar.add(get_cookie(token));
+            let token = state.session_store.write().await.add_user(user).await.unwrap();
+            cookie_jar = cookie_jar.add(get_cookie(token.to_string()));
             redirect = Redirect::to("/").into_response();
         }
         Err(message) => {

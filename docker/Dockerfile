@@ -2,7 +2,7 @@ FROM rust:slim AS builder
 LABEL authors="buonhobo"
 
 WORKDIR /build
-COPY . .
+COPY ../ .
 ENV SQLX_OFFLINE=true
 RUN cargo fetch
 RUN cargo build --release

@@ -29,6 +29,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          file: docker/agent/Dockerfile
+          file: docker/Dockerfile
+          context: ..
           push: true
           tags: ghcr.io/buonhobo/advent-of-faith:latest

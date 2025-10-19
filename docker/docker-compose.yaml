@@ -1,6 +1,6 @@
 services:
   advent-of-faith:
-    image: advent-of-faith
+    image: ghcr.io/buonhobo/advent-of-faith
     build:
       context: ..
       dockerfile: ./docker/Dockerfile

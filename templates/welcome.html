@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Advent of Faith</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="welcome-container">
+    <h1 class="title">Advent of Faith</h1>
+    <p class="subtitle">
+        ❄️ Every day a little more ❄️
+    </p>
+
+    {% if let Some(user) = user %}
+    <a href="/dashboard" class="btn btn-primary">My Presents</a>
+    <a href="/logout" class="btn btn-outline">Log Out</a>
+    {% else %}
+    <a href="/login" class="btn btn-primary">Log In</a>
+    <a href="/signup" class="btn btn-outline">Sign Up</a>
+    {% endif %}
+</div>
+
+<footer>
+Made with ❤️ by Alex.
+</footer>
+
+<script src="../static/js/main.js"></script>
+</body>
+</html>

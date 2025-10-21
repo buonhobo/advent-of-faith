@@ -1,4 +1,5 @@
 use sqlx::{FromRow, Type};
+use std::fmt::Display;
 
 #[derive(Clone, Debug, Type)]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            WITH inserted AS (\n                INSERT INTO user_sessions (user_id) VALUES ($1)\n                RETURNING id, user_id, created_at, expires_at)\n            SELECT\n                u.id AS user_id, u.username, u.role AS \"role:_\",\n                s.id, s.created_at, s.expires_at\n            FROM inserted AS s\n            JOIN users AS u ON u.id = s.user_id\n            ",
+  "query": "\n                WITH inserted AS (\n                    INSERT INTO user_sessions (token_hash,user_id) VALUES ($1,$2)\n                    RETURNING token_hash, user_id, created_at, expires_at)\n                SELECT\n                    u.id AS user_id, u.username, u.role AS \"role:_\",\n                    s.token_hash, s.created_at, s.expires_at\n                FROM inserted AS s\n                JOIN users AS u ON u.id = s.user_id\n                ",
   "describe": {
     "columns": [
       {
@@ -30,8 +30,8 @@
       },
       {
         "ordinal": 3,
-        "name": "id",
-        "type_info": "Uuid"
+        "name": "token_hash",
+        "type_info": "Bpchar"
       },
       {
         "ordinal": 4,
@@ -46,6 +46,7 @@
     ],
     "parameters": {
       "Left": [
+        "Bpchar",
         "Int4"
       ]
     },
@@ -58,5 +59,5 @@
       false
     ]
   },
-  "hash": "514327633358473cea0be46e0fef905dffb5561c9bc518042713ec97760f755d"
+  "hash": "b07c23d7352bd207677e4876bb3ea58ee5850e686733f80f91360bc19fdbeb9b"
 }

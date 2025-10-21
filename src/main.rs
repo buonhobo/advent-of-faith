@@ -1,32 +1,21 @@
 mod model;
 mod persistence;
 mod service;
+mod templates;
 mod web;
 
-use crate::persistence::repository::UserRepository;
-use crate::service::authentication::{authenticate_user, require_logged_out, SessionStore};
-use crate::web::handler::{login_page, login_post, signup_page, signup_post};
+use crate::model::app_state::AppState;
+use crate::service::authentication::{authenticate_user, require_logged_in, require_logged_out};
+use crate::web::authentication_handlers::{
+    login_page, login_post, logout_get, signup_page, signup_post,
+};
+use crate::web::handler::welcome_handler;
+use crate::web::member_handlers::dashboard_handler;
+use axum::routing::get_service;
 use axum::{middleware, routing::get, Router};
 use sqlx::PgPool;
 use std::env;
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use web::handler::web_handler;
-
-#[derive(Clone)]
-struct AppState {
-    pub user_repository: Arc<RwLock<UserRepository>>,
-    pub session_store: Arc<RwLock<SessionStore>>,
-}
-
-impl AppState {
-    async fn new(db_conn: PgPool) -> Self {
-        Self {
-            user_repository: Arc::new(RwLock::new(UserRepository::new(db_conn.clone()))),
-            session_store: Arc::new(RwLock::new(SessionStore::new(db_conn))),
-        }
-    }
-}
+use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
@@ -35,12 +24,25 @@ async fn main() {
         .expect("DATABASE connection failed!");
     let state: AppState = AppState::new(db_conn).await;
 
-    // build our application with a single route
-    let app = Router::new()
+    let login_router = Router::new()
         .route("/login", get(login_page).post(login_post))
         .route("/signup", get(signup_page).post(signup_post))
-        .route_layer(middleware::from_fn(require_logged_out))
-        .route("/", get(web_handler))
+        .route_layer(middleware::from_fn(require_logged_out));
+
+    let guest_router = Router::new()
+        .route("/", get(welcome_handler))
+        .nest_service("/static", get_service(ServeDir::new("static")));
+
+    let user_router = Router::new()
+        .route("/dashboard", get(dashboard_handler))
+        .route("/logout", get(logout_get))
+        .route_layer(middleware::from_fn(require_logged_in));
+
+    // build our application with a single route
+    let app = Router::new()
+        .merge(login_router)
+        .merge(guest_router)
+        .merge(user_router)
         .layer(middleware::from_fn_with_state(
             state.clone(),
             authenticate_user,

@@ -11,8 +11,11 @@ serde = { version = "1.0.228", features = ["derive"] }
 askama = "0.14.0"
 sqlx = { version = "0.8.6", features = [ "runtime-tokio","postgres","uuid","chrono" ] }
 argon2 = "0.5.3"
-uuid = "1.18.1"
+uuid = { version = "1.18.1", features = ["v4"] }
 chrono = "0.4.42"
+sha2 = "0.10.9"
+hex = "0.4.3"
+tower-http = {version =  "0.6.6" ,features = ["fs"]}
 
 [[bin]]
 name = "advent-of-faith"

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <title>My Presents — Advent of Faith</title>
+    <link href="static/css/style.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="calendar-container">
+    <h1 class="calendar-title">🎄 My Advent Calendar</h1>
+
+    <div class="calendar-grid">
+        {% for day in days %}
+        <div class="day-card {{ day.status }}" data-day="{{ day.number }}">
+            <div class="day-number">{{ day.number }}</div>
+            <div class="day-status">
+                {% if day.status.as_str() == "future" %}
+                Unavailable
+                {% elif day.status.as_str() == "locked" %}
+                Locked
+                {% else %}
+                Unlocked
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<footer>
+    Made with ❤️ by Alex.
+</footer>
+
+<script src="static/js/main.js"></script>
+</body>
+</html>

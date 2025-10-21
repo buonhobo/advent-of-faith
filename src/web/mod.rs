@@ -1,2 +1,3 @@
+pub mod authentication_handlers;
 pub mod handler;
-pub mod templates;
+pub mod member_handlers;

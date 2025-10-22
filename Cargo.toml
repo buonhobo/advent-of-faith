@@ -5,17 +5,21 @@ edition = "2024"
 
 [dependencies]
 axum = "0.8.6"
-axum-extra = { version = "0.10.3", features = ["typed-header","cookie"] }
+axum-extra = { version = "0.10.3", features = ["typed-header", "cookie"] }
 tokio = { version = "1.48", features = ["full"] }
 serde = { version = "1.0.228", features = ["derive"] }
 askama = "0.14.0"
-sqlx = { version = "0.8.6", features = [ "runtime-tokio","postgres","uuid","chrono" ] }
-argon2 = "0.5.3"
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
+argon2 = { version = "0.5.3", features = ["password-hash"] }
 uuid = { version = "1.18.1", features = ["v4"] }
 chrono = "0.4.42"
 sha2 = "0.10.9"
 hex = "0.4.3"
-tower-http = {version =  "0.6.6" ,features = ["fs"]}
+tower-http = { version = "0.6.6", features = ["fs"] }
+lru = "0.16.2"
+rand = "0.8.5"
+chacha20poly1305 = "0.10.1"
+hkdf = "0.12.4"
 
 [[bin]]
 name = "advent-of-faith"

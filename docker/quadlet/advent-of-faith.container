@@ -1,0 +1,20 @@
+[Unit]
+Description=Web server for advent-of-faith
+Wants=network-online.target
+After=network-online.target
+Requires=cloudflared.service
+Requires=postgres.service
+
+[Container]
+Image=ghcr.io/buonhobo/advent-of-faith
+ContainerName=advent-of-faith
+Environment=DATABASE_URL=postgres://REDACTED:REDACTED@postgres:5432/REDACTED
+Environment=BIND_LISTENER=0.0.0.0:80
+AutoUpdate=registry
+Network=advent-of-faith.network
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

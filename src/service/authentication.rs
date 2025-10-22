@@ -70,16 +70,18 @@ pub async fn require_logged_in(
 
 pub async fn authenticate_user(
     State(state): State<AppState>,
-    jar: CookieJar,
+    mut jar: CookieJar,
     mut req: Request,
     next: Next,
-) -> Result<Response, StatusCode> {
+) -> Result<(CookieJar, Response), StatusCode> {
     if let Some(token) = jar.get("token").map(Cookie::value) {
         let token = Uuid::parse_str(&token).map_err(|_| StatusCode::BAD_REQUEST)?;
         if let Some(user) = state.session_store.write().await.get_user(token).await {
             req.extensions_mut().insert(Some(user));
-        };
+        } else {
+            jar = jar.remove(Cookie::from("token"));
+        }
     };
 
-    Ok(next.run(req).await)
+    Ok((jar, next.run(req).await))
 }

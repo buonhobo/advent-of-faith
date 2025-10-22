@@ -1,5 +1,4 @@
 use sqlx::{FromRow, Type};
-use std::fmt::Display;
 
 #[derive(Clone, Debug, Type)]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]
@@ -13,4 +12,24 @@ pub struct User {
     pub id: i32,
     pub username: String,
     pub role: UserRole,
+    pub content_key: Vec<u8>,
+    pub master_key_salt: Vec<u8>,
+}
+
+impl User {
+    pub fn new(
+        id: i32,
+        username: String,
+        role: UserRole,
+        content_key: Vec<u8>,
+        master_key_salt: Vec<u8>,
+    ) -> User {
+        Self {
+            id,
+            username,
+            role,
+            content_key,
+            master_key_salt,
+        }
+    }
 }

@@ -15,23 +15,23 @@
       },
       {
         "ordinal": 2,
-        "name": "unlock_at",
+        "name": "unlocks_at",
         "type_info": "Timestamptz"
       },
       {
         "ordinal": 3,
-        "name": "code_hash",
-        "type_info": "Bpchar"
+        "name": "content",
+        "type_info": "Bytea"
       },
       {
         "ordinal": 4,
-        "name": "title",
+        "name": "day_key_hash",
         "type_info": "Text"
       },
       {
         "ordinal": 5,
-        "name": "content",
-        "type_info": "Text"
+        "name": "content_salt",
+        "type_info": "Bytea"
       }
     ],
     "parameters": {
@@ -43,7 +43,7 @@
       false,
       false,
       false,
-      true,
+      false,
       true,
       true
     ]

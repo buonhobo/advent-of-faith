@@ -1,0 +1,22 @@
+[Unit]
+Description=Postgres database for advent-of-faith
+Wants=network-online.target
+After=network-online.target
+
+
+[Container]
+Image=docker.io/postgres
+ContainerName=postgres
+AutoUpdate=registry
+Environment=POSTGRES_PASSWORD=REDACTED
+Environment=POSTGRES_USER=REDACTED
+Environment=POSTGRES_DB=REDACTED
+PublishPort=5432:5432
+Volume=/path/to/postgres:/var/lib/postgresql:Z
+Network=advent-of-faith.network
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

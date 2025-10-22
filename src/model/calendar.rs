@@ -39,8 +39,8 @@ pub struct Calendar {
 pub struct CalendarDay {
     pub id: i32,
     pub calendar_id: i32,
-    pub unlock_at: DateTime<Utc>,
-    pub code_hash: Option<String>,
-    pub title: Option<String>,
-    pub content: Option<String>,
+    pub unlocks_at: DateTime<Utc>,
+    pub content: Vec<u8>,
+    pub day_key_hash: Option<String>,
+    pub content_salt: Option<Vec<u8>>,
 }

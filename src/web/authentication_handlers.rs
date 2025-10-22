@@ -46,7 +46,7 @@ pub async fn login_post(
     Form(login): Form<LoginForm>,
 ) -> Result<(CookieJar, Response), StatusCode> {
     let next: NextResource = login.clone().into();
-    let credentials = login.into();
+    let credentials = login.clone().into();
     let user_repo_lock = state.user_repository.read().await;
     let user = user_repo_lock.authenticate_user(&credentials).await;
 
@@ -57,7 +57,7 @@ pub async fn login_post(
                 .session_store
                 .write()
                 .await
-                .add_user(user)
+                .add_user(user, &login.password)
                 .await
                 .unwrap();
             let cookie_jar = CookieJar::new().add(get_cookie(token.to_string()));
@@ -88,7 +88,7 @@ pub async fn signup_post(
     Form(login): Form<LoginForm>,
 ) -> Result<(CookieJar, Response), StatusCode> {
     let next: NextResource = login.clone().into();
-    let credentials = login.into();
+    let credentials = login.clone().into();
     let user_repo_lock = state.user_repository.write().await;
     let user = user_repo_lock
         .add_user(&credentials, UserRole::MEMBER)
@@ -100,7 +100,7 @@ pub async fn signup_post(
                 .session_store
                 .write()
                 .await
-                .add_user(user)
+                .add_user(user, &login.password)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

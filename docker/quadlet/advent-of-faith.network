@@ -1,0 +1,5 @@
+[Unit]
+Description=advent-of-faith network
+
+[Network]
+NetworkName=advent-of-faith

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Calendar</title>
+</head>
+<body>
+
+<h1>Calendar: {{calendar.title}}</h1>
+
+{% for (i,day) in days.iter().enumerate() %}
+
+<p> <a href="/calendar/{{calendar.id}}/day/{{day.id}}">{{i + 1 }}</a>  -> {{day.unlocks_at.format("%b %d") }}</p>
+
+{% endfor %}
+
+{% if let Some(user) = user %}
+{% if user.id == calendar.owner_id %}
+
+<form action="/calendar/{{calendar.id}}/day/create" id="add-day-form" method="post">
+    <label for="unlocks_at_local">Unlock date:</label>
+    <input id="unlocks_at_local" name="unlocks_at_local" required type="datetime-local">
+
+    <!-- This hidden field will be filled with a timezone-aware datetime -->
+    <input id="unlocks_at" name="unlocks_at" type="hidden">
+
+    <button class="btn btn-primary" type="submit">Add Day</button>
+</form>
+{% endif %}
+{% endif %}
+
+
+<script>
+    document.getElementById('add-day-form').addEventListener('submit', function (e) {
+        const localInput = document.getElementById('unlocks_at_local');
+        const hiddenInput = document.getElementById('unlocks_at');
+
+        if (localInput.value) {
+            // Convert the datetime-local value to a Date object in local time
+            const localDate = new Date(localInput.value);
+
+            // Convert to ISO string in UTC (e.g. "2025-10-25T12:30:00Z")
+            hiddenInput.value = localDate.toISOString();
+        }
+    });
+</script>
+</body>
+</html>

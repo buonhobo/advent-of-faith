@@ -1,0 +1,11 @@
+I still want to implement:
+- Store a day's content separately from the other related data
+- Encrypt a day's content with a randomly generated key, and encrypt that key using the day's password
+- Store sessions in Redis so that they are randomly deleted
+- ~~Do not consider collisions for token hashes~~
+- ~~Inspect failure cases for encryption related unwraps~~
+- Create a calendar
+- Add and remove days to a calendar
+- Subscribe to a calendar
+- Unlock a calendar's day
+- See my calendars in dashboard

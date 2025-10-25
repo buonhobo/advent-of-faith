@@ -1,4 +1,3 @@
-use std::time::Instant;
 use crate::model::user::{User, UserRole};
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::SaltString;
@@ -8,6 +7,7 @@ use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
 use rand::random;
 use serde::Deserialize;
 use sqlx::PgPool;
+use std::time::Instant;
 
 pub struct UserRepository {
     db_pool: PgPool,
@@ -22,16 +22,15 @@ impl UserRepository {
         UserRepository { db_pool }
     }
 
-    pub async fn authenticate_user(&self, user: &LoginCredentials) -> Result<User, &str> {
+    pub async fn authenticate_user(&self, user: &LoginCredentials) -> Result<User, String> {
         let time = Instant::now();
-        println!("Querying DB to authenticate user: {} at {:?}", user.username,time.elapsed());
+
         let res = sqlx::query!(r#"select  id, username, role as "role:UserRole", password_hash, master_key_salt, content_key_salt, content_key_encr
                                 from users where username = ($1)"#, user.username)
             .fetch_optional(&self.db_pool)
             .await
             .map_err(|_| "Database connection failed")?
             .ok_or("Couldn't find this user")?;
-        println!("Finished querying DB: {:?}", time.elapsed());
 
         Argon2::default()
             .verify_password(
@@ -40,22 +39,17 @@ impl UserRepository {
                     .map_err(|_| "Invalid password_hash from database")?,
             )
             .map_err(|_| "Invalid credentials")?;
-        println!("Verified password: {:?}", time.elapsed());
 
         let master_key = Self::get_master_key_with_salt(&user.password, &res.master_key_salt);
-        println!("Master key generated: {:?}", time.elapsed());
 
         let content_key =
             Self::decrypt_content_key(&master_key, &res.content_key_encr, &res.content_key_salt);
-
-        println!("Decrypted content key: {:?}", time.elapsed());
-
 
         let user = User::new(
             res.id,
             res.username,
             res.role,
-            content_key,
+            content_key?,
             res.master_key_salt,
         );
         Ok(user)
@@ -65,7 +59,6 @@ impl UserRepository {
         let (master_key, master_salt) = Self::get_master_key_and_salt(&user.password);
         let (content_key, content_cypher, content_salt) =
             Self::get_content_key_cypher_and_salt(&master_key);
-        println!("Querying DB to add user: {}", user.username);
         let id = sqlx::query!(
             "insert into users (username,role,password_hash,master_key_salt,content_key_encr,content_key_salt)
             values ($1,$2,$3,$4,$5,$6)
@@ -107,11 +100,15 @@ impl UserRepository {
         (master_key, salt)
     }
 
-    fn decrypt_content_key(master_key: &[u8; 32], cyphertext: &[u8], salt: &[u8]) -> Vec<u8> {
+    fn decrypt_content_key(
+        master_key: &[u8; 32],
+        cyphertext: &[u8],
+        salt: &[u8],
+    ) -> Result<Vec<u8>, String> {
         let cypher = ChaCha20Poly1305::new(master_key.into())
             .decrypt(salt.into(), cyphertext)
-            .unwrap();
-        cypher.into()
+            .map_err(|e| format!("Decryption failed, the key is probably outdated: {:?}", e))?;
+        Ok(cypher)
     }
 
     fn get_master_key_with_salt(password: &str, salt: &[u8]) -> [u8; 32] {

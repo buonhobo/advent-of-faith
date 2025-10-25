@@ -10,7 +10,6 @@ use rand::random;
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use std::num::NonZeroUsize;
-use std::ops::Not;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -35,7 +34,7 @@ impl SessionStore {
     pub fn new(db_pool: PgPool) -> Self {
         Self {
             db_pool,
-            cached_sessions: LruCache::new(NonZeroUsize::new(100).unwrap()),
+            cached_sessions: LruCache::new(NonZeroUsize::new(100).unwrap()), // Can't fail because 100 > 0
         }
     }
 
@@ -45,7 +44,6 @@ impl SessionStore {
         if let Some(session) = self.cached_sessions.get(&token_hash) {
             return Some(session.clone());
         }
-        println!("Querying DB for session with hash: {}", hash_hex);
         let result = sqlx::query!(
                 r#"
                 SELECT
@@ -53,7 +51,7 @@ impl SessionStore {
                     s.token_hash, s.created_at, s.expires_at, s.master_key_salt, s.master_key_encr
                 FROM user_sessions as s
                 JOIN users as u ON u.id = s.user_id
-                WHERE s.token_hash = $1
+                WHERE s.token_hash = $1 AND s.expires_at > NOW()
                 "#,
                 hash_hex
             )
@@ -98,7 +96,7 @@ impl SessionStore {
     ) -> Result<Vec<u8>, String> {
         let mut token_key_dest = [0u8; 32];
         let hk = Hkdf::<Sha256>::new(None, token.as_bytes());
-        hk.expand(b"session", &mut token_key_dest).unwrap();
+        hk.expand(b"session", &mut token_key_dest).unwrap(); // Should never fail since lengths are always the same
 
         let master_key = ChaCha20Poly1305::new(&token_key_dest.into())
             .decrypt(master_key_salt.into(), master_key_encr)
@@ -110,59 +108,50 @@ impl SessionStore {
     }
 
     pub async fn get_user(&mut self, token: Uuid) -> Option<User> {
-        self.get_session(token)
-            .await
-            .and_then(|session| session.is_expired().not().then_some(session.user))
+        self.get_session(token).await.map(|session| session.user)
     }
 
     pub async fn add_user(&mut self, user: User, password: &str) -> Result<Uuid, String> {
-        loop {
-            let candidate = Uuid::new_v4();
-            let token_hash: [u8; 32] = Sha256::digest(candidate).into();
-            let hash_hex = hex::encode(token_hash);
+        let token = Uuid::new_v4();
+        let token_hash: [u8; 32] = Sha256::digest(token).into();
+        let hash_hex = hex::encode(token_hash);
 
-            let (master_encr, master_salt) =
-                self.get_encrypted_master_key(&candidate, password, &user.master_key_salt);
+        let (master_encr, master_salt) =
+            self.get_encrypted_master_key(&token, password, &user.master_key_salt);
 
-            println!("Querying DB to make session with hash: {}", hash_hex);
-            let result = sqlx::query!(
-                r#"
+        let result = sqlx::query!(
+            r#"
                 WITH inserted AS (
                     INSERT INTO user_sessions (token_hash,user_id,master_key_salt,master_key_encr)
                     VALUES ($1,$2,$3,$4)
                     RETURNING token_hash, user_id, created_at, expires_at)
                 SELECT
-                    s.token_hash, s.created_at, s.expires_at
+                    s.created_at, s.expires_at
                 FROM inserted AS s
                 JOIN users AS u ON u.id = s.user_id
                 "#,
-                hash_hex,
-                user.id,
-                &master_salt,
-                &master_encr,
+            hash_hex,
+            user.id,
+            &master_salt,
+            &master_encr,
+        )
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| {
+            format!(
+                "There was an error when creating the session: {}",
+                e.to_string()
             )
-            .fetch_one(&self.db_pool)
-            .await;
+        })?;
 
-            match result {
-                Ok(session) => {
-                    let session = Session {
-                        id: token_hash,
-                        user,
-                        created_at: session.created_at,
-                        expires_at: session.expires_at,
-                    };
-                    self.cached_sessions.put(token_hash, session);
-                    return Ok(candidate);
-                }
-                Err(sqlx::Error::Database(e)) if e.is_unique_violation() => {
-                    continue;
-                }
-                Err(e) => {
-                    return Err(e.to_string());
-                }
-            }
-        }
+        let session = Session {
+            id: token_hash,
+            user,
+            created_at: result.created_at,
+            expires_at: result.expires_at,
+        };
+        self.cached_sessions.put(token_hash, session);
+        Ok(token)
     }
 
     fn get_encrypted_master_key(
@@ -174,7 +163,7 @@ impl SessionStore {
         let mut master_key = [0u8; 32];
         Argon2::default()
             .hash_password_into(password.as_bytes(), &master_key_salt, &mut master_key)
-            .unwrap();
+            .unwrap(); //Shouldn't fail because parameters are always of the same lengths
 
         let mut token_key_dest = [0u8; 32];
         let hk = Hkdf::<Sha256>::new(None, token.as_bytes());
@@ -190,7 +179,6 @@ impl SessionStore {
     pub async fn expire_session(&mut self, session_id: Uuid) -> Result<(), String> {
         let token_hash: [u8; 32] = Sha256::digest(session_id.as_bytes()).into();
         let hash_hex = hex::encode(token_hash);
-        println!("Querying DB to expire session with hash: {}", hash_hex);
         sqlx::query!(
             "UPDATE user_sessions SET expires_at = now() WHERE token_hash = $1",
             hash_hex

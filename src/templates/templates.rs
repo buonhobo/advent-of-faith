@@ -1,17 +1,20 @@
-use crate::model::calendar::Day;
+use crate::model::calendar::RichUserCalendar;
 use crate::model::user::User;
 use askama::Template;
 
 #[derive(Template)]
-#[template(path = "dashboard.html")]
+#[template(path = "home.html")]
 pub struct HelloTemplate {
     user: User,
-    days: Vec<Day>,
+    user_calendars: Vec<RichUserCalendar>,
 }
 
 impl HelloTemplate {
-    pub fn new(user: User, days: Vec<Day>) -> Self {
-        HelloTemplate { user, days }
+    pub fn new(user: User, user_calendars: Vec<RichUserCalendar>) -> Self {
+        HelloTemplate {
+            user,
+            user_calendars,
+        }
     }
 }
 

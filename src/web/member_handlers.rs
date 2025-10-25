@@ -1,30 +1,21 @@
-use crate::model::calendar::{Day, Status};
+use crate::model::app_state::AppState;
 use crate::model::user::User;
 use crate::templates::templates::HelloTemplate;
 use askama::Template;
-use axum::http::StatusCode;
+use axum::extract::State;
 use axum::response::{Html, IntoResponse};
 
-pub async fn dashboard_handler(user: User) -> Result<impl IntoResponse, StatusCode> {
-    Ok(Html(
-        HelloTemplate::new(
-            user,
-            vec![
-                Day {
-                    number: 1,
-                    status: Status::Unlocked,
-                },
-                Day {
-                    number: 2,
-                    status: Status::Locked,
-                },
-                Day {
-                    number: 3,
-                    status: Status::Future,
-                },
-            ],
-        )
-        .render()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
-    ))
+pub async fn dashboard_handler(user: User, State(state): State<AppState>) -> impl IntoResponse {
+    let subscriptions = state.calendar_service.get_dashboard_data(&user).await;
+    let content = match subscriptions {
+        Ok(subscriptions) => HelloTemplate::new(user, subscriptions)
+            .render()
+            .map_err(|_| "There was an error rendering this page".to_owned()),
+        Err(e) => Err(format!("There was an error getting your dashboard: {e}")),
+    };
+
+    match content {
+        Ok(html) => Html(html),
+        Err(msg) => Html(msg),
+    }
 }

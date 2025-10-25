@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create a calendar</title>
+</head>
+<body>
+
+<form action="/calendar/create" method="post">
+
+    <h1> What's the calendar's name? </h1>
+    {% if let Some(error_msg) =  message %}
+    <h2> {{ error_msg }} </h2>
+    {% endif %}
+    <input name="title" placeholder="Calendar Title" required type="text">
+
+    <button type="submit"> Confirm</button>
+</form>
+
+</body>
+</html>

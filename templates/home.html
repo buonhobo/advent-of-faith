@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advent of Faith | Home</title>
+</head>
+<body>
+<h1>Your Calendars</h1>
+<ol>
+  {% for rich_user_calendar in user_calendars %}
+  {% let user_calendar = rich_user_calendar.calendar %}
+  {% let calendar = user_calendar.calendar %}
+  <li>
+    <p> <a href="/calendar/{{calendar.id}}">{{ calendar.title }}</a> subscribed on {{user_calendar.subscribed_at.format("%b %d, %Y")}}</p>
+    <ol>
+      {% for user_day in rich_user_calendar.days %}
+      {% let day = user_day.day %}
+      <li>
+        <a href="/calendar/{{calendar.id}}/day/{{day.id}}">Day</a> with status {{ user_day.get_status().to_string() }}
+      </li>
+      {% endfor %}
+    </ol>
+  </li>
+  {% endfor %}
+</ol>
+<a href="/calendar/create">New calendar</a>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, calendar_id, unlocks_at\n            FROM calendar_days\n            WHERE calendar_id = $1\n            ORDER BY unlocks_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "calendar_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "unlocks_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e62ade66ad38413b7d608117118e08e2a928d419ce21a76fe72de5daea7bcb11"
+}

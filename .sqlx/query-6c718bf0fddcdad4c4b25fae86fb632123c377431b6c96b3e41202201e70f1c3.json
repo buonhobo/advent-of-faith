@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n                    u.id as user_id, u.username, u.role as \"role:UserRole\", u.content_key_encr, u.content_key_salt,\n                    s.token_hash, s.created_at, s.expires_at, s.master_key_salt, s.master_key_encr\n                FROM user_sessions as s\n                JOIN users as u ON u.id = s.user_id\n                WHERE s.token_hash = $1\n                ",
+  "query": "\n                SELECT\n                    u.id as user_id, u.username, u.role as \"role:UserRole\", u.content_key_encr, u.content_key_salt,\n                    s.token_hash, s.created_at, s.expires_at, s.master_key_salt, s.master_key_encr\n                FROM user_sessions as s\n                JOIN users as u ON u.id = s.user_id\n                WHERE s.token_hash = $1 AND s.expires_at > NOW()\n                ",
   "describe": {
     "columns": [
       {
@@ -82,5 +82,5 @@
       false
     ]
   },
-  "hash": "152b9b0abf0d4bc1a7594ecb9a1399e14ee4e82c047960816a485587ee045c9d"
+  "hash": "6c718bf0fddcdad4c4b25fae86fb632123c377431b6c96b3e41202201e70f1c3"
 }

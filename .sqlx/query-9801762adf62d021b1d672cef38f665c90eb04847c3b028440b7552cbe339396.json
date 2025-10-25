@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT unlocked_at, unlocks_at, cd.calendar_id, cd.id as day_id\n            FROM calendar_days as cd\n            JOIN calendars as c ON cd.calendar_id = c.id\n            LEFT JOIN user_days as ud ON cd.id = ud.day_id\n            WHERE calendar_id = ANY($1)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "unlocked_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "unlocks_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "calendar_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "day_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4Array"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9801762adf62d021b1d672cef38f665c90eb04847c3b028440b7552cbe339396"
+}

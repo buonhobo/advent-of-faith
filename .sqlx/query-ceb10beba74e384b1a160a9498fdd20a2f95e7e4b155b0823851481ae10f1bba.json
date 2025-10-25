@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO calendar_subscriptions (user_id, calendar_id)\n            VALUES ($1,$2)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ceb10beba74e384b1a160a9498fdd20a2f95e7e4b155b0823851481ae10f1bba"
+}

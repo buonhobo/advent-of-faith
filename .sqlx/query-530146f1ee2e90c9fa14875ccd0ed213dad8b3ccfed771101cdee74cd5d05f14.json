@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                WITH inserted AS (\n                    INSERT INTO user_sessions (token_hash,user_id,master_key_salt,master_key_encr)\n                    VALUES ($1,$2,$3,$4)\n                    RETURNING token_hash, user_id, created_at, expires_at)\n                SELECT\n                    s.created_at, s.expires_at\n                FROM inserted AS s\n                JOIN users AS u ON u.id = s.user_id\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Int4",
+        "Bytea",
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "530146f1ee2e90c9fa14875ccd0ed213dad8b3ccfed771101cdee74cd5d05f14"
+}

@@ -113,6 +113,21 @@
             color: #2b1b12;
             font-weight: 600;
         }
+        @media (max-width: 576px) {
+            .day-card {
+                max-width: 95%;   /* almost full width of the screen */
+                min-height: 120px; /* slightly smaller to fit better */
+                padding: 1.25rem;  /* keep some inner spacing */
+            }
+
+            .day-number {
+                font-size: 1.8rem; /* adjust to fit */
+            }
+
+            .day-details .day-info {
+                font-size: 0.7rem;
+            }
+        }
 
     </style>
 </head>

@@ -1,4 +1,4 @@
-use crate::model::calendar::{Calendar, CalendarDay, RichUserCalendar};
+use crate::model::calendar::{Calendar, RichUserCalendar};
 use crate::model::user::User;
 use crate::persistence::calendar_repository::CalendarRepository;
 use chrono::{DateTime, Utc};
@@ -39,20 +39,12 @@ impl CalendarService {
     pub async fn get_calendar_with_days(
         &self,
         calendar_id: i32,
-    ) -> Result<(Calendar, Vec<CalendarDay>), String> {
-        let calendar = self
-            .get_repo()
+        user: &User,
+    ) -> Result<RichUserCalendar, String> {
+        self.get_repo()
             .await
-            .get_calendar(calendar_id)
+            .get_user_calendar(calendar_id, user)
             .await
-            .expect("Calendar not found");
-        let days = self
-            .get_repo()
-            .await
-            .get_days(&calendar)
-            .await
-            .expect("Days not found");
-        Ok((calendar, days))
     }
 
     pub async fn add_day(

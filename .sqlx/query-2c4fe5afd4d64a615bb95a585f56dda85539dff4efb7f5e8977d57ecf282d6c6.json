@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT calendars.id, calendars.title, calendars.created_at, calendars.owner_id, subscribed_at\n            FROM calendar_subscriptions\n            JOIN calendars ON calendar_subscriptions.calendar_id = calendars.id\n            WHERE calendar_subscriptions.user_id = $1\n            ",
+  "query": "\n            SELECT calendars.id, calendars.title, calendars.created_at, calendars.owner_id, subscribed_at\n            FROM calendars\n            LEFT JOIN (SELECT * FROM calendar_subscriptions WHERE calendar_subscriptions.user_id = $1) as cs\n            ON cs.calendar_id = calendars.id\n            WHERE calendars.id = $2\n            ",
   "describe": {
     "columns": [
       {
@@ -31,6 +31,7 @@
     ],
     "parameters": {
       "Left": [
+        "Int4",
         "Int4"
       ]
     },
@@ -42,5 +43,5 @@
       true
     ]
   },
-  "hash": "84df6b8baaee0e7f915bee38f10c5defd07a7dd631855d96c7993ee1e5d4898b"
+  "hash": "2c4fe5afd4d64a615bb95a585f56dda85539dff4efb7f5e8977d57ecf282d6c6"
 }

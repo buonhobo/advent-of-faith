@@ -104,23 +104,22 @@ impl CalendarRepository {
         .map_err(|e| e.to_string())
     }
 
-    pub async fn get_dashboard_data(&self, user: &User) -> Result<Vec<RichUserCalendar>, String> {
-        let calendars = self.get_subscriptions(user).await?;
-        let calendar_ids = calendars
-            .iter()
-            .map(|user_calendar| user_calendar.calendar.id)
-            .collect::<Vec<_>>();
-
+    pub async fn get_user_days(
+        &self,
+        calendar_ids: &[i32],
+        user: &User,
+    ) -> Result<Vec<(i32, UserDay)>, String> {
         let all_days = sqlx::query!(
             r#"
             SELECT unlocked_at, unlocks_at, cd.calendar_id, cd.id as day_id
             FROM calendar_days as cd
             JOIN calendars as c ON cd.calendar_id = c.id
-            LEFT JOIN user_days as ud ON cd.id = ud.day_id
-            WHERE calendar_id = ANY($1)
+            LEFT JOIN (SELECT * FROM user_days WHERE user_id = $2) as ud ON cd.id = ud.day_id
+            WHERE cd.calendar_id = ANY($1)
             ORDER BY unlocks_at
             "#,
-            &calendar_ids
+            calendar_ids,
+            user.id
         )
         .fetch_all(&self.db_pool)
         .await
@@ -143,6 +142,17 @@ impl CalendarRepository {
             })
             .collect();
 
+        Ok(user_days)
+    }
+
+    pub async fn get_dashboard_data(&self, user: &User) -> Result<Vec<RichUserCalendar>, String> {
+        let calendars = self.get_subscriptions(user).await?;
+        let calendar_ids = calendars
+            .iter()
+            .map(|user_calendar| user_calendar.calendar.id)
+            .collect::<Vec<_>>();
+
+        let user_days = self.get_user_days(&calendar_ids, user).await?;
         let mut user_map =
             user_days
                 .into_iter()
@@ -160,6 +170,53 @@ impl CalendarRepository {
             .collect();
 
         Ok(calendars)
+    }
+
+    pub async fn get_user_calendar(
+        &self,
+        calendar_id: i32,
+        user: &User,
+    ) -> Result<RichUserCalendar, String> {
+        let query = sqlx::query!(
+            r#"
+            SELECT calendars.id, calendars.title, calendars.created_at, calendars.owner_id, subscribed_at
+            FROM calendars
+            LEFT JOIN (SELECT * FROM calendar_subscriptions WHERE calendar_subscriptions.user_id = $1) as cs
+            ON cs.calendar_id = calendars.id
+            WHERE calendars.id = $2
+            "#,
+            user.id,
+            calendar_id
+        );
+
+        let record = query
+            .fetch_optional(&self.db_pool)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or("This calendar does not exist")?;
+
+        let user_cal = UserCalendar {
+            calendar: Calendar {
+                id: record.id,
+                owner_id: record.owner_id,
+                title: record.title,
+                created_at: record.created_at,
+            },
+            subscribed_at: record.subscribed_at,
+        };
+        let user_days = self
+            .get_user_days([user_cal.calendar.id, user_cal.calendar.id].as_ref(), &user)
+            .await?
+            .into_iter()
+            .map(|(_, day)| day)
+            .collect();
+
+        let rich_cal = RichUserCalendar {
+            calendar: user_cal,
+            days: user_days,
+        };
+
+        Ok(rich_cal)
     }
 
     pub async fn add_day(&self, calendar_id: i32, unlocks_at: DateTime<Utc>) -> Result<(), String> {

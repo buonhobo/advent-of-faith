@@ -44,11 +44,11 @@ pub struct CalendarDay {
 }
 
 impl UserDay {
-    fn is_unlocked(&self) -> bool {
+    pub fn is_unlocked(&self) -> bool {
         self.unlocked_at.is_some()
     }
 
-    fn is_available(&self) -> bool {
+    pub fn is_available(&self) -> bool {
         self.day.unlocks_at < Utc::now()
     }
 
@@ -70,7 +70,7 @@ pub struct RichCalendar {
 
 pub struct UserCalendar {
     pub calendar: Calendar,
-    pub subscribed_at: DateTime<Utc>,
+    pub subscribed_at: Option<DateTime<Utc>>,
 }
 pub struct RichUserCalendar {
     pub calendar: UserCalendar,

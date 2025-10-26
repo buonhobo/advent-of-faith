@@ -42,7 +42,7 @@
                         {% if rich_cal.calendar.calendar.owner_id == user.id %}
                         <div class="calendar-meta">Created on {{ rich_cal.calendar.calendar.created_at.format("%b %d, %Y") }}</div>
                         {% else %}
-                        <div class="calendar-meta">Subscribed on {{ rich_cal.calendar.subscribed_at.format("%b %d, %Y") }}</div>
+                        <div class="calendar-meta">Subscribed on {{ rich_cal.calendar.subscribed_at.unwrap().format("%b %d, %Y") }}</div>
                         {% endif %}
                     </div>
                 </a>

@@ -1,4 +1,4 @@
-use crate::model::calendar::{Calendar, CalendarDay};
+use crate::model::calendar::RichUserCalendar;
 use crate::model::user::User;
 use askama::Template;
 
@@ -17,21 +17,12 @@ impl CreateCalendarTemplate {
 #[derive(Template)]
 #[template(path = "calendar/show.html")]
 pub struct ShowCalendarTemplate {
-    calendar: Calendar,
-    days: Vec<CalendarDay>,
-    user: Option<User>,
+    calendar: RichUserCalendar,
+    user: User,
 }
 
 impl ShowCalendarTemplate {
-    pub fn new(
-        calendar: Calendar,
-        days: Vec<CalendarDay>,
-        user: Option<User>,
-    ) -> ShowCalendarTemplate {
-        ShowCalendarTemplate {
-            calendar,
-            days,
-            user,
-        }
+    pub fn new(calendar: RichUserCalendar, user: User) -> ShowCalendarTemplate {
+        ShowCalendarTemplate { calendar, user }
     }
 }

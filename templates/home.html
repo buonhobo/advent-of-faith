@@ -1,217 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <title>Advent of Faith | Home</title>
-  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <meta charset="UTF-8"/>
+    <title>Advent of Faith | Home</title>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
 
-  <!-- Bootstrap 5 CSS -->
-  <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-          crossorigin="anonymous"
-  />
+    <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+            integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+            crossorigin="anonymous"
+    />
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;600&display=swap"
-          rel="stylesheet"
-  >
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+            href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;600&display=swap"
+            rel="stylesheet"
+    >
 
-  <!-- App theme CSS -->
-  <link rel="stylesheet" href="/static/css/theme.css">
-
-  <style>
-    /* Page-level refinements aligned with your palette */
-    .page-header {
-      max-width: 920px;
-    }
-
-    .calendar-card {
-      border-radius: 16px;
-    }
-
-    .calendar-meta {
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
-    /* Ensure days are on a single row and scroll horizontally when overflow */
-    .days-row {
-      display: flex;
-      gap: .5rem;
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding: .5rem 0 .5rem 0; /* extra top padding to avoid hover overlap with top border */
-      margin-top: .25rem;
-      scrollbar-width: thin;
-    }
-    .days-row::-webkit-scrollbar {
-      height: 8px;
-    }
-    .days-row::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.18);
-      border-radius: 8px;
-    }
-
-    .day-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: .45rem;
-      padding: .55rem .75rem; /* slightly more padding to prevent overlap when raised */
-      border-radius: 999px;
-      border: 1px solid rgba(255, 217, 179, 0.28);
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--ink);
-      text-decoration: none;
-      white-space: nowrap;
-      transition: background-color .15s ease, border-color .15s ease, transform .1s ease, box-shadow .1s ease;
-      font-weight: 600;
-      line-height: 1;
-      will-change: transform;
-    }
-    .day-chip:hover, .day-chip:focus {
-      background: rgba(255, 255, 255, 0.10);
-      border-color: rgba(255, 217, 179, 0.45);
-      color: #fff1e6;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.18);
-    }
-
-    /* Add inner top padding to the section so raised chips don't cover the top border */
-    .calendar-card .days-row:first-child,
-    .calendar-card .days-row {
-      padding-top: .6rem;
-    }
-
-    /* Status pills */
-    .status {
-      font-size: .78rem;
-      font-weight: 600;
-      padding: .15rem .5rem;
-      border-radius: 999px;
-      border: 1px solid transparent;
-      opacity: .95;
-    }
-    .status-future {
-      color: #cbbab6;
-      border-color: rgba(203, 186, 182, 0.25);
-      background: rgba(255, 255, 255, 0.04);
-    }
-    .status-locked {
-      color: #eec9a7;
-      border-color: rgba(255, 217, 179, 0.28);
-      background: rgba(255, 255, 255, 0.06);
-    }
-    .status-unlocked {
-      color: #2b1b12;
-      background: var(--btn);
-      border-color: rgba(0,0,0,0);
-    }
-
-    .divider {
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255, 216, 186, 0.18), transparent);
-    }
-
-    /* Minimal “Create” button: subtle background, no border */
-    .btn-create-minimal {
-      background: rgba(255, 255, 255, 0.08);
-      color: #ffd9b3;
-      border: none;
-    }
-    .btn-create-minimal:hover,
-    .btn-create-minimal:focus {
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff1e6;
-    }
-  </style>
+    <link rel="stylesheet" href="/static/css/theme.css">
 </head>
+
 <body>
 <div class="wrap">
-  <main class="container py-4 py-md-5">
-    <header class="page-header mx-auto mb-4 mb-md-5 text-center">
-      <h1 class="title display-6 fw-semibold mb-1">Your Calendars</h1>
-      <p class="subtitle mb-0">Stay present. One day at a time.</p>
-    </header>
+    <main class="container-fluid px-3 py-5">
+        <div class="main-content">
+            <h1 class="title text-center mb-5">Here are your calendars, {{ user.username }}</h1>
 
-    {% if user_calendars.is_empty() %}
-    <section class="card-frost calendar-card p-4 p-md-5 mx-auto" style="max-width: 920px;">
-      <div class="text-center">
-        <p class="subtitle mb-0">
-          You aren't subscribed to any calendars yet. Subscribe to a calendar or create one from the button below.
-        </p>
-      </div>
-    </section>
-    {% else %}
-    <div class="mx-auto" style="max-width: 980px;">
-      {% for rich_user_calendar in user_calendars %}
-      {% let user_calendar = rich_user_calendar.calendar %}
-      {% let calendar = user_calendar.calendar %}
-      <section class="card-frost calendar-card p-3 p-md-4 mb-3 mb-md-4">
-        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-2">
-          <div>
-            <h2 class="h4 title mb-1">
-              <a class="link-underline link-underline-opacity-0" style="color:#ffd7c2;" href="/calendar/{{ calendar.id }}">
-                {{ calendar.title }}
-              </a>
-            </h2>
-            <div class="calendar-meta">
-              Subscribed on {{ user_calendar.subscribed_at.format("%b %d, %Y") }}
+            {% if user_calendars.is_empty() %}
+            <div class="no-calendars">
+                <p>You have no calendars yet.<br>
+                    Create one or subscribe to an existing one!</p>
             </div>
-          </div>
-          <div class="d-flex gap-2">
-            <a class="btn btn-ghost" href="/calendar/{{ calendar.id }}">Open</a>
-          </div>
+            {% else %}
+            {% for rich_cal in user_calendars %}
+            <div class="calendar-card">
+                <a href="/calendar/{{ rich_cal.calendar.calendar.id }}" class="calendar-header text-decoration-none">
+                    <div>
+                        <div class="calendar-title">{{ rich_cal.calendar.calendar.title }}</div>
+                        {% if rich_cal.calendar.calendar.owner_id == user.id %}
+                        <div class="calendar-meta">Created on {{ rich_cal.calendar.calendar.created_at.format("%b %d, %Y") }}</div>
+                        {% else %}
+                        <div class="calendar-meta">Subscribed on {{ rich_cal.calendar.subscribed_at.format("%b %d, %Y") }}</div>
+                        {% endif %}
+                    </div>
+                </a>
+
+                {% if rich_cal.days.is_empty() %}
+                <p class="no-days">This calendar has no days yet.</p>
+                {% else %}
+                <div class="days-row-wrapper">
+                    <div class="days-row">
+                        {% for user_day in rich_cal.days %}
+                        {% set status = user_day.get_status() %}
+                        {% if status.as_str() == "future" %}
+                        <div class="day-card day-future">
+                            <div class="day-number">{{ user_day.day.unlocks_at.format("%d") }}</div>
+                            <div class="day-label">{{ user_day.day.unlocks_at.format("%b %Y") }}</div>
+                        </div>
+                        {% elif status.as_str() == "locked" %}
+                        <a href="/calendar/{{ rich_cal.calendar.calendar.id }}/day/{{ user_day.day.id }}" class="day-card day-locked">
+                            <div class="day-number">{{ user_day.day.unlocks_at.format("%d") }}</div>
+                            <div class="day-label">{{ user_day.day.unlocks_at.format("%b %Y") }}</div>
+                        </a>
+                        {% else %}
+                        <a href="/calendar/{{ rich_cal.calendar.calendar.id }}/day/{{ user_day.day.id }}" class="day-card day-unlocked">
+                            <div class="day-number">{{ user_day.day.unlocks_at.format("%d") }}</div>
+                            <div class="day-label">{{ user_day.unlocked_at.unwrap().format("%b %Y") }}</div>
+                        </a>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <a href="/calendar/create" class="create-calendar-link">＋ Create New Calendar</a>
         </div>
+    </main>
 
-        <div class="divider my-3"></div>
-
-        <!-- Days row: single line, horizontally scrollable -->
-        <div class="days-row" aria-label="Days of {{ calendar.title }}">
-          {% for (i, user_day) in rich_user_calendar.days.iter().enumerate() %}
-          {% let day_number = i + 1 %}
-          {% let day = user_day.day %}
-          {% let status = user_day.get_status().to_string() %}
-          <a
-                  class="day-chip"
-                  href="/calendar/{{ calendar.id }}/day/{{ day.id }}"
-                  aria-label="Day {{ day_number }} is {{ status }}"
-                  {% if status == "future" %} tabindex="-1" aria-disabled="true"{% endif %}
-          >
-          <span>Day {{ day_number }}</span>
-          <span class="status
-                                {% if status == "future" %}status-future{% endif %}
-          {% if status == "locked" %}status-locked{% endif %}
-          {% if status == "unlocked" %}status-unlocked{% endif %}
-          ">
-          {{ status }}
-          </span>
-          </a>
-          {% endfor %}
-        </div>
-      </section>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    <div class="text-center mt-3">
-      <a class="btn btn-create-minimal btn-lg px-4" href="/calendar/create">Create a calendar</a>
-    </div>
-  </main>
-
-  <footer class="container text-center pb-4">
-    <small class="footer-note">Made with 💛 by Alex</small>
-  </footer>
+    <footer class="container-fluid text-center pb-4">
+        <small class="footer-note">Made with 💛 by Alex</small>
+    </footer>
 </div>
 
 <script
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-        crossorigin="anonymous"
-></script>
+        crossorigin="anonymous">
+</script>
 </body>
 </html>

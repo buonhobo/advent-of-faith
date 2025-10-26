@@ -9,9 +9,19 @@
     <link href="/static/css/theme.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <style>
+        /* --- GLOBAL FIXES --- */
+        body, html {
+            overflow-x: hidden; /* prevent horizontal glitch */
+        }
+
+        .wrap {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
         /* --- Calendar Header --- */
         .calendar-header-section .title {
-            font-size: 3.5rem; /* much bigger title */
+            font-size: 3.5rem; /* large on desktop */
             font-weight: 800;
             text-align: center;
             color: #ffd7c2;
@@ -28,27 +38,24 @@
             margin: 0.15rem 0;
         }
 
-        /* --- DAYS ROW --- */
+        /* --- Days column --- */
         .days-row-wrapper {
             margin-top: 2rem;
-            overflow: visible; /* ensure shadows are not clipped */
+            overflow: visible; /* shadows visible */
         }
-
 
         .days-column {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem; /* space between cards */
+            gap: 1.5rem;
             align-items: center;
-            padding: 1.5rem 0; /* add vertical padding to avoid clipping */
-            overflow: visible; /* allow shadows to escape */
+            padding: 2rem 0;
         }
 
-
-        /* --- DAY CARDS --- */
+        /* --- Day Cards --- */
         .day-card {
             width: 100%;
-            max-width: 320px; /* card width */
+            max-width: 100%; /* remove desktop max-width for mobile */
             min-height: 140px;
             border-radius: 16px;
             text-align: center;
@@ -85,96 +92,78 @@
             text-align: center;
         }
 
-        /* position small info at bottom */
         .day-details {
             position: absolute;
             bottom: 0.8rem;
-            left: 50%;                /* center horizontally */
+            left: 50%;
             transform: translateX(-50%);
             text-align: center;
-            width: max-content;              /* optional, content-sized */
+            width: max-content;
         }
-
 
         /* Status colors */
-        .day-future {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--muted);
-            cursor: not-allowed;
+        .day-future { background: rgba(255, 255, 255, 0.05); color: var(--muted); cursor: not-allowed; }
+        .day-locked { background: rgba(215, 161, 89, 0.25); color: #ffd9b3; }
+        .day-unlocked { background: rgba(215, 161, 89, 0.55); color: #2b1b12; font-weight: 600; }
+
+        /* --- Add-Day Form --- */
+        .add-day-form {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap; /* allow wrapping on mobile */
         }
 
-        .day-locked {
-            background: rgba(215, 161, 89, 0.25);
-            color: #ffd9b3;
+        .add-day-form .form-control-romantic {
+            flex: 1 1 200px;
+            min-width: 100px;
         }
 
-        .day-unlocked {
-            background: rgba(215, 161, 89, 0.55);
-            color: #2b1b12;
-            font-weight: 600;
+        .add-day-form .btn-honey {
+            flex: 0 1 120px;
         }
-        /* --- MOBILE FIXES --- */
+
+        /* --- MOBILE SPECIFIC --- */
         @media (max-width: 576px) {
-            /* Calendar header */
             .calendar-header-section .title {
-                font-size: 2.2rem;      /* slightly larger than day cards */
-                font-weight: 800;
-                margin-bottom: 0.5rem;
-                text-align: center;
+                font-size: 2rem; /* slightly bigger than day cards */
             }
 
             .calendar-header-section .calendar-meta {
                 font-size: 0.9rem;
-                text-align: center;
             }
 
-            /* Days column & wrapper */
-            .days-column {
-                gap: 1.25rem;           /* spacing between cards */
-                padding: 1rem 0;        /* vertical padding to avoid clipping */
-            }
-
-            /* Day cards */
             .day-card {
-                width: 90%;              /* almost full screen width */
-                max-width: 90%;
+                width: 95vw; /* almost full screen width */
+                max-width: 95vw;
                 min-height: 120px;
                 padding: 1.25rem;
                 border-radius: 14px;
             }
 
             .day-number {
-                font-size: 1.8rem;       /* slightly smaller than header */
+                font-size: 1.8rem;
             }
 
             .day-details .day-info {
-                font-size: 0.7rem;
+                font-size: 0.75rem;
             }
 
-            /* Add-day form */
             .add-day-form {
                 flex-direction: column;
                 gap: 0.75rem;
+                align-items: stretch;
             }
 
-            .add-day-form .form-control-romantic {
-                width: 100%;
-                padding: 0.75rem 0.9rem;
-                font-size: 0.95rem;
-            }
-
+            .add-day-form .form-control-romantic,
             .add-day-form .btn-honey {
                 width: 100%;
-                font-size: 0.95rem;
-                padding: 0.65rem 0;
             }
 
-            /* Optional: reduce calendar card padding if needed */
             .card-frost {
-                padding: 1rem 1rem;
+                padding: 1.2rem 1rem;
             }
         }
-
 
     </style>
 </head>

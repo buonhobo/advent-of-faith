@@ -113,21 +113,68 @@
             color: #2b1b12;
             font-weight: 600;
         }
+        /* --- MOBILE FIXES --- */
         @media (max-width: 576px) {
+            /* Calendar header */
+            .calendar-header-section .title {
+                font-size: 2.2rem;      /* slightly larger than day cards */
+                font-weight: 800;
+                margin-bottom: 0.5rem;
+                text-align: center;
+            }
+
+            .calendar-header-section .calendar-meta {
+                font-size: 0.9rem;
+                text-align: center;
+            }
+
+            /* Days column & wrapper */
+            .days-column {
+                gap: 1.25rem;           /* spacing between cards */
+                padding: 1rem 0;        /* vertical padding to avoid clipping */
+            }
+
+            /* Day cards */
             .day-card {
-                max-width: 95%;   /* almost full width of the screen */
-                min-height: 120px; /* slightly smaller to fit better */
-                padding: 1.25rem;  /* keep some inner spacing */
+                width: 90%;              /* almost full screen width */
+                max-width: 90%;
+                min-height: 120px;
+                padding: 1.25rem;
+                border-radius: 14px;
             }
 
             .day-number {
-                font-size: 1.8rem; /* adjust to fit */
+                font-size: 1.8rem;       /* slightly smaller than header */
             }
 
             .day-details .day-info {
                 font-size: 0.7rem;
             }
+
+            /* Add-day form */
+            .add-day-form {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .add-day-form .form-control-romantic {
+                width: 100%;
+                padding: 0.75rem 0.9rem;
+                font-size: 0.95rem;
+            }
+
+            .add-day-form .btn-honey {
+                width: 100%;
+                font-size: 0.95rem;
+                padding: 0.65rem 0;
+            }
+
+            /* Optional: reduce calendar card padding if needed */
+            .card-frost {
+                padding: 1rem 1rem;
+            }
         }
+
 
     </style>
 </head>

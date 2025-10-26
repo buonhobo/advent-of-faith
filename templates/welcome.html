@@ -1,21 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8"/>
     <title>Advent of Faith | Welcome</title>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+
+    <!-- Bootstrap 5 CSS -->
+    <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+            integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+            crossorigin="anonymous"
+    />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+            href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;600&display=swap"
+            rel="stylesheet"
+    >
+
+    <!-- App theme CSS -->
+    <link rel="stylesheet" href="/static/css/theme.css">
 </head>
 <body>
-<h1>Advent of Faith</h1>
-<p>
-    ❄️ Every day a little more ❄️
-</p>
+<div class="wrap">
+    <main class="container d-flex align-items-center justify-content-center py-5">
+        <div class="w-100" style="max-width: 720px;">
+            <section class="card-frost p-4 p-md-5 text-center">
+                <h1 class="title display-5 fw-semibold mb-2">Advent of Faith</h1>
+                <p class="subtitle lead mb-4">✧ Every day a little more ✧</p>
 
-{% if let Some(user) = user %}
-<a href="/home">My Calendars</a>
-<a href="/logout">Log Out</a>
-{% else %}
-<a href="/login">Log In</a>
-<a href="/signup">Sign Up</a>
-{% endif %}
+                {% if let Some(user) = user %}
+                <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                    <a class="btn btn-honey btn-lg px-4" href="/home">Open My Calendars</a>
+                </div>
+                {% else %}
+                <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                    <a class="btn btn-ghost btn-lg px-4" href="/login">Log In</a>
+                    <a class="btn btn-honey btn-lg px-4" href="/signup">Begin</a>
+                </div>
+                {% endif %}
+            </section>
+
+            {% if let Some(user) = user %}
+            <div class="text-center mt-2">
+                <small class="footer-note">
+                    Logged in as <span class="user-highlight">{{ user.username }}</span>.
+                    <a href="/logout" class="link-underline link-underline-opacity-0" style="color:#ffd9b3;">Log out</a>
+                </small>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <footer class="container text-center pb-4">
+        <small class="footer-note">Made with 💛 by Alex</small>
+    </footer>
+</div>
+
+<!-- Bootstrap JS (optional for future components) -->
+<script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"
+></script>
 </body>
 </html>

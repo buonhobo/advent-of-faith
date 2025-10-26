@@ -1,43 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
     <title>Login — Advent of Faith</title>
-    <link href="static/css/style.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link
+            crossorigin="anonymous"
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+            integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+            rel="stylesheet"
+    />
+
+    <!-- Fonts (same pairing as home) -->
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link
+            href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;600&display=swap"
+            rel="stylesheet"
+    />
+
+    <!-- Shared theme -->
+    <link href="/static/css/theme.css" rel="stylesheet"/>
 </head>
 <body>
+<div class="wrap">
+    <main class="container d-flex align-items-center justify-content-center py-5">
+        <section class="card-frost p-4 p-md-5 w-100" style="max-width: 540px;">
+            <h1 class="title display-5 fw-semibold mb-4 text-center">Log In</h1>
+            {% if let Some(status_message) = status_message %}
+            <div class="alert alert-warning py-2 mb-4" role="alert"
+                 style="background: rgba(255, 217, 179, 0.08); border: 1px solid rgba(255,217,179,0.35); color: #ffd9b3;">
+                {{ status_message.message }}
+            </div>
+            {% endif %}
 
-<div class="form-container">
-    <h1 class="title">Log In</h1>
-    <p class="subtitle">Enter your credentials to continue ✨</p>
-    {% if let Some(status_message) = status_message %}
-    <p> {{ status_message.message }} </p>
-    {% endif %}
-    <form action="/login" method="post">
-        {% if let Some(status_message) = status_message %}
-        <input class="form-control" name="username" placeholder="Username" required
-               type="text" value="{{ status_message.creds.username }}">
-        <input class="form-control" name="password" placeholder="Password" required
-               type="password" value="{{ status_message.creds.password }}">
-        {% else %}
-        <input name="username" placeholder="Username" required type="text">
-        <input name="password" placeholder="Password" required type="password">
-        {% endif %}
-        <button class="btn btn-primary" type="submit">Log In</button>
-        <input name="next" type="hidden" value='{{ next.get_next_or("/") }}'>
-    </form>
+            <form action="/login" method="post" novalidate>
+                <div class="mb-3">
+                    {% if let Some(status_message) = status_message %}
+                    <input
+                            autocomplete="username"
+                            class="form-control form-control-romantic"
+                            id="username"
+                            name="username"
+                            placeholder="Username"
+                            required
+                            type="text"
+                            value="{{ status_message.creds.username }}"
+                    />
+                    {% else %}
+                    <input
+                            autocomplete="username"
+                            class="form-control form-control-romantic"
+                            id="username"
+                            name="username"
+                            placeholder="Username"
+                            required
+                            type="text"
+                    />
+                    {% endif %}
+                </div>
 
-    <p class="subtitle" style="margin-top: 1rem;">
-        Don't have an account? <a href='/signup?next={{ next.get_next_or("") }}' style="color: var(--accent);">Sign Up</a>
-    </p>
+                <div class="mb-4">
+                    {% if let Some(status_message) = status_message %}
+                    <input
+                            autocomplete="current-password"
+                            class="form-control form-control-romantic"
+                            id="password"
+                            name="password"
+                            placeholder="Password"
+                            required
+                            type="password"
+                            value="{{ status_message.creds.password }}"
+                    />
+                    {% else %}
+                    <input
+                            autocomplete="current-password"
+                            class="form-control form-control-romantic"
+                            id="password"
+                            name="password"
+                            placeholder="Password"
+                            required
+                            type="password"
+                    />
+                    {% endif %}
+                </div>
+
+                <input name="next" type="hidden" value='{{ next.get_next_or("/") }}'/>
+
+                <div class="d-grid">
+                    <button class="btn btn-honey btn-lg px-4" type="submit">Continue</button>
+                </div>
+            </form>
+
+            <p class="subtitle text-center mt-4 mb-0">
+                Don’t have an account?
+                <a class="link-underline link-underline-opacity-0" href='/signup?next={{ next.get_next_or("") }}'
+                   style="color: #ffd9b3;">
+                    Sign Up
+                </a>
+            </p>
+        </section>
+    </main>
+
+    <footer class="container text-center pb-4">
+        <small class="footer-note">Made with 💛 by Alex</small>
+    </footer>
 </div>
 
-<footer>
-    Made with ❤️ by Alex.
-</footer>
-
-<script src="static/js/main.js"></script>
+<!-- Bootstrap JS (optional) -->
+<script
+        crossorigin="anonymous"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 use crate::model::app_state::Reference;
-use crate::model::calendar::{Calendar, CalendarDay, Day, RichUserCalendar, UserCalendar, UserDay};
+use crate::model::calendar::{Calendar, CalendarDay, RichUserCalendar, UserCalendar, UserDay};
 use crate::model::user::User;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
@@ -118,6 +118,7 @@ impl CalendarRepository {
             JOIN calendars as c ON cd.calendar_id = c.id
             LEFT JOIN user_days as ud ON cd.id = ud.day_id
             WHERE calendar_id = ANY($1)
+            ORDER BY unlocks_at
             "#,
             &calendar_ids
         )

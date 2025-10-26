@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT unlocked_at, unlocks_at, cd.calendar_id, cd.id as day_id\n            FROM calendar_days as cd\n            JOIN calendars as c ON cd.calendar_id = c.id\n            LEFT JOIN user_days as ud ON cd.id = ud.day_id\n            WHERE calendar_id = ANY($1)\n            ",
+  "query": "\n            SELECT unlocked_at, unlocks_at, cd.calendar_id, cd.id as day_id\n            FROM calendar_days as cd\n            JOIN calendars as c ON cd.calendar_id = c.id\n            LEFT JOIN user_days as ud ON cd.id = ud.day_id\n            WHERE calendar_id = ANY($1)\n            ORDER BY unlocks_at\n            ",
   "describe": {
     "columns": [
       {
@@ -36,5 +36,5 @@
       false
     ]
   },
-  "hash": "9801762adf62d021b1d672cef38f665c90eb04847c3b028440b7552cbe339396"
+  "hash": "3729f8d952c7fd0c204c7e2b3431f28ce1419235e06ef39dff4569d9c860afb8"
 }

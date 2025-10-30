@@ -38,6 +38,7 @@ pub struct CalendarDay {
     pub id: i32,
     pub calendar_id: i32,
     pub unlocks_at: DateTime<Utc>,
+    pub protected: bool,
     // pub content: Vec<u8>,
     // pub day_key_hash: Option<String>,
     // pub content_salt: Option<Vec<u8>>,
@@ -80,4 +81,10 @@ pub struct RichUserCalendar {
 pub struct UserDay {
     pub day: CalendarDay,
     pub unlocked_at: Option<DateTime<Utc>>,
+}
+
+pub struct RichContent {
+    pub content: String,
+    pub user_day: UserDay,
+    pub calendar: Calendar,
 }

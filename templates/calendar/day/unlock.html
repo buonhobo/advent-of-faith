@@ -5,6 +5,13 @@
     <title>unlock</title>
 </head>
 <body>
+{% if let Some(code) = code %}}
+{{code}}
+{% endif %}
+{% if let Some(message) = message %}}
+{{message}}
+{% endif %}
+{{user.username}}
 <footer class="container text-center pb-4">
     <small class="footer-note">Made with 💛 by Alex</small>
 </footer>

@@ -1,8 +1,10 @@
 use crate::model::app_state::AppState;
 use crate::model::user::User;
-use crate::templates::calendar_templates::{CreateCalendarTemplate, ShowCalendarTemplate};
+use crate::templates::calendar_templates::{
+    CreateCalendarTemplate, ShowCalendarTemplate, ShowDayTemplate, UnlockDayTemplate,
+};
 use askama::Template;
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Redirect, Response};
 use axum::Form;
@@ -26,6 +28,19 @@ pub async fn create_calendar_post(
     let calendar_id = result.map(|calendar| calendar.id);
     match calendar_id {
         Ok(calendar_id) => Redirect::to(&format!("/calendar/{calendar_id}")).into_response(),
+        Err(e) => Html(CreateCalendarTemplate::new(Some(e)).render().unwrap()).into_response(),
+    }
+}
+
+pub async fn subscribe_post(
+    user: User,
+    Path(calendar_id): Path<i32>,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let result = state.calendar_service.subscribe(&user, calendar_id).await;
+
+    match result {
+        Ok(()) => Redirect::to(&format!("/calendar/{calendar_id}")).into_response(),
         Err(e) => Html(CreateCalendarTemplate::new(Some(e)).render().unwrap()).into_response(),
     }
 }
@@ -78,5 +93,73 @@ pub async fn show_calendar(
 
     let content = ShowCalendarTemplate::new(cal, user).render().unwrap();
 
+    Html(content).into_response()
+}
+
+pub async fn show_day_get(
+    Path((_, day_id)): Path<(i32, i32)>,
+    user: User,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let res = state.calendar_service.get_rich_content(day_id, &user).await;
+
+    let content = match res {
+        Ok(cal) => cal,
+        Err(e) => {
+            return Response::builder()
+                .status(StatusCode::UNAUTHORIZED)
+                .body(e)
+                .unwrap()
+                .into_response();
+        }
+    };
+
+    let content = ShowDayTemplate::new(content, user).render().unwrap();
+
+    Html(content).into_response()
+}
+#[derive(Deserialize)]
+pub struct UnlockDayForm {
+    code: Option<String>,
+}
+pub async fn unlock_post(
+    State(state): State<AppState>,
+    Path((calendar_id, day_id)): Path<(i32, i32)>,
+    user: User,
+    Form(unlock_form): Form<UnlockDayForm>,
+) -> Result<Response, Response> {
+    let res = state
+        .calendar_service
+        .unlock_day(day_id, &user, unlock_form.code.clone())
+        .await;
+
+    let output = match res {
+        Ok(_) => Redirect::to(&format!("/calendar/{calendar_id}/day/{day_id}")).into_response(),
+        Err(e) => Html(
+            UnlockDayTemplate::new(unlock_form.code, user, day_id)
+                .with_message(Some(e))
+                .render()
+                .map_err(|e| {
+                    Response::builder()
+                        .status(StatusCode::UNAUTHORIZED)
+                        .body(e.to_string())
+                        .unwrap()
+                        .into_response()
+                })?,
+        )
+        .into_response(),
+    };
+
+    Ok(output)
+}
+
+pub async fn unlock_get(
+    Path((_, day_id)): Path<(i32, i32)>,
+    user: User,
+    Query(unlock_form): Query<UnlockDayForm>,
+) -> impl IntoResponse {
+    let content = UnlockDayTemplate::new(unlock_form.code, user, day_id)
+        .render()
+        .unwrap();
     Html(content).into_response()
 }

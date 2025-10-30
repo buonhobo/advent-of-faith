@@ -10,7 +10,8 @@ use crate::web::authentication_handlers::{
     login_page, login_post, logout_get, signup_page, signup_post,
 };
 use crate::web::calendar_handlers::{
-    add_day_post, create_calendar_get, create_calendar_post, show_calendar,
+    add_day_post, create_calendar_get, create_calendar_post, show_calendar, show_day_get,
+    subscribe_post, unlock_get, unlock_post,
 };
 use crate::web::handler::welcome_handler;
 use crate::web::member_handlers::dashboard_handler;
@@ -35,7 +36,10 @@ async fn main() {
         .route("/", get(welcome_handler))
         .nest_service("/static", get_service(ServeDir::new("static")));
 
-    let day_router = Router::new().route("/create", post(add_day_post));
+    let day_router = Router::new()
+        .route("/create", post(add_day_post))
+        .route("/{day_id}", get(show_day_get))
+        .route("/{day_id}/unlock", post(unlock_post).get(unlock_get));
 
     let calendar_router = Router::new()
         .route(
@@ -43,6 +47,7 @@ async fn main() {
             get(create_calendar_get).post(create_calendar_post),
         )
         .route("/{calendar_id}", get(show_calendar))
+        .route("/{calendar_id}/subscribe", post(subscribe_post))
         .nest("/{calendar_id}/day", day_router);
 
     let user_router = Router::new()

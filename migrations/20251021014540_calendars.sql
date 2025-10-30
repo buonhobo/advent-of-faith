@@ -11,13 +11,21 @@ CREATE TABLE IF NOT EXISTS calendar_days
 (
     id          SERIAL PRIMARY KEY                              NOT NULL,
     calendar_id INT REFERENCES calendars (id) ON DELETE CASCADE NOT NULL,
-    unlocks_at  timestamptz                                     NOT NULL
---     -- if day_key_hash is null, then content is unencrypted json
---     content      bytea                                           not null,
---     -- argon2 hash of day key
---     day_key_hash text,
---     -- salt used to encrypt the content using xchacha20poly1305 and day key
---     content_salt bytea
+    unlocks_at  timestamptz                                     NOT NULL,
+    protected   bool not null
+);
+
+CREATE TABLE IF NOT EXISTS day_content
+(
+    -- Salt used to derive the decryption key. If this is null then content is unencrypted
+    decryption_key_salt bytea,
+    -- Encrypted decryption key, derived from owner's day key. If this is null then content is unencrypted
+    decryption_key_encr bytea,
+    -- Salt used to encrypt the content using the decryption key, if this is null then content is unencrypted
+    content_salt bytea,
+    -- encrypted or unencrypted content depending on the other values
+    content bytea not null,
+    day_id int primary key references calendar_days (id) on delete cascade not null
 );
 
 CREATE TABLE IF NOT EXISTS calendar_subscriptions
@@ -32,9 +40,9 @@ create table if not exists user_days
 (
     user_id     int references users (id) on delete cascade         not null,
     day_id      int references calendar_days (id) on delete cascade not null,
-    unlocked_at timestamptz,
+    unlocked_at timestamptz default now(),
     -- day key encrypted using xchacha20poly1305 and content key
---     day_key_salt bytea,
---     day_key_encr bytea,
+    day_key_salt bytea,
+    day_key_encr bytea,
     primary key (user_id, day_id)
 )

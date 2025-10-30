@@ -7,7 +7,6 @@ use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
 use rand::random;
 use serde::Deserialize;
 use sqlx::PgPool;
-use std::time::Instant;
 
 pub struct UserRepository {
     db_pool: PgPool,
@@ -23,7 +22,6 @@ impl UserRepository {
     }
 
     pub async fn authenticate_user(&self, user: &LoginCredentials) -> Result<User, String> {
-        let time = Instant::now();
 
         let res = sqlx::query!(r#"select  id, username, role as "role:UserRole", password_hash, master_key_salt, content_key_salt, content_key_encr
                                 from users where username = ($1)"#, user.username)

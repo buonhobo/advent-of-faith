@@ -69,16 +69,28 @@ impl CalendarService {
         user: &User,
         calendar_id: i32,
         unlocks_at: DateTime<Utc>,
+        password: Option<String>,
+        content: String,
     ) -> Result<(), String> {
         let calendar = self
             .get_repo()
             .await
             .get_calendar(calendar_id)
             .await
-            .expect("Calendar not found");
+            .map_err(|e| format!("Failed to get calendar: {:?}", e))?;
         if user.id != calendar.owner_id {
             return Err("This user cannot edit this calendar".to_owned());
         }
-        self.get_repo().await.add_day(calendar_id, unlocks_at).await
+
+        self.get_repo()
+            .await
+            .add_day(
+                user,
+                calendar_id,
+                unlocks_at,
+                password.and_then(|p| if p.is_empty() { None } else { Some(p) }),
+                content,
+            )
+            .await
     }
 }

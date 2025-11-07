@@ -55,6 +55,8 @@ pub async fn create_calendar_get() -> impl IntoResponse {
 #[derive(Deserialize)]
 pub struct AddDayForm {
     unlocks_at: DateTime<Utc>,
+    password: Option<String>,
+    content:String,
 }
 pub async fn add_day_post(
     State(state): State<AppState>,
@@ -64,12 +66,14 @@ pub async fn add_day_post(
 ) -> impl IntoResponse {
     state
         .calendar_service
-        .add_day(&user, calendar_id, add_day_form.unlocks_at)
+        .add_day(&user, calendar_id, add_day_form.unlocks_at, add_day_form.password, add_day_form.content)
         .await
         .expect("asda");
     Redirect::to(&format!("/calendar/{calendar_id}"))
 }
 
+
+//TODO add subscription button if user is not subscribed
 pub async fn show_calendar(
     Path(calendar_id): Path<i32>,
     user: User,
@@ -96,8 +100,9 @@ pub async fn show_calendar(
     Html(content).into_response()
 }
 
+//TODO: if user has not unlocked the day, redirect to day unlock page
 pub async fn show_day_get(
-    Path((_, day_id)): Path<(i32, i32)>,
+    Path((cal_id, day_id)): Path<(i32, i32)>,
     user: User,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
@@ -106,11 +111,7 @@ pub async fn show_day_get(
     let content = match res {
         Ok(cal) => cal,
         Err(e) => {
-            return Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body(e)
-                .unwrap()
-                .into_response();
+            return Redirect::to(&format!("/calendar/{cal_id}/day/{day_id}/unlock")).into_response();
         }
     };
 
@@ -136,7 +137,7 @@ pub async fn unlock_post(
     let output = match res {
         Ok(_) => Redirect::to(&format!("/calendar/{calendar_id}/day/{day_id}")).into_response(),
         Err(e) => Html(
-            UnlockDayTemplate::new(unlock_form.code, user, day_id)
+            UnlockDayTemplate::new(unlock_form.code, user, day_id,calendar_id)
                 .with_message(Some(e))
                 .render()
                 .map_err(|e| {
@@ -153,12 +154,16 @@ pub async fn unlock_post(
     Ok(output)
 }
 
+
+//TODO: If user has already unlocked the day, then redirect to the day
+//TODO: Fetch day unlock date
+//TODO: If day is not protected, don't ask for password
 pub async fn unlock_get(
-    Path((_, day_id)): Path<(i32, i32)>,
+    Path((cal_id, day_id)): Path<(i32, i32)>,
     user: User,
     Query(unlock_form): Query<UnlockDayForm>,
 ) -> impl IntoResponse {
-    let content = UnlockDayTemplate::new(unlock_form.code, user, day_id)
+    let content = UnlockDayTemplate::new(unlock_form.code, user, day_id, cal_id)
         .render()
         .unwrap();
     Html(content).into_response()

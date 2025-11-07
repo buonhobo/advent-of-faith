@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT unlocked_at, unlocks_at, cd.calendar_id, cd.id as day_id\n            FROM calendar_days as cd\n            JOIN calendars as c ON cd.calendar_id = c.id\n            LEFT JOIN (SELECT * FROM user_days WHERE user_id = $2) as ud ON cd.id = ud.day_id\n            WHERE cd.calendar_id = ANY($1)\n            ORDER BY unlocks_at\n            ",
+  "query": "\n            SELECT unlocked_at, unlocks_at, cd.calendar_id, cd.id as day_id, protected\n            FROM calendar_days as cd\n            JOIN calendars as c ON cd.calendar_id = c.id\n            LEFT JOIN (SELECT * FROM user_days WHERE user_id = $2) as ud ON cd.id = ud.day_id\n            WHERE cd.calendar_id = ANY($1)\n            ORDER BY unlocks_at\n            ",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,11 @@
         "ordinal": 3,
         "name": "day_id",
         "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "protected",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -34,8 +39,9 @@
       true,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "ad6bedd2b03b42c2e6d07f15bbfacef34bcfa86cb181825fd5c23b4c789fb114"
+  "hash": "ceb892e9e4be31fb70398e1ade5300d713b74704ea869cd8549b5cc71c0c25be"
 }

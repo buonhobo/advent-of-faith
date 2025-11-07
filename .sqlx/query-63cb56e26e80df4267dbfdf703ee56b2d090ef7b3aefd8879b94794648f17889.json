@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO user_days (user_id, day_id, day_key_salt,day_key_encr)\n            VALUES ($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Bytea",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "63cb56e26e80df4267dbfdf703ee56b2d090ef7b3aefd8879b94794648f17889"
+}

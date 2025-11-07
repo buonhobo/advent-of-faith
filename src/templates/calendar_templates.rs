@@ -46,15 +46,17 @@ pub struct UnlockDayTemplate {
     user: User,
     message: Option<String>,
     day_id: i32,
+    cal_id: i32,
 }
 
 impl UnlockDayTemplate {
-    pub fn new(code: Option<String>, user: User, day_id: i32) -> UnlockDayTemplate {
+    pub fn new(code: Option<String>, user: User, day_id: i32, cal_id:i32) -> UnlockDayTemplate {
         UnlockDayTemplate {
             code,
             user,
             message: None,
             day_id,
+            cal_id
         }
     }
 

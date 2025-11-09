@@ -6,13 +6,11 @@ mod web;
 
 use crate::model::app_state::AppState;
 use crate::service::authentication::{authenticate_user, require_logged_in, require_logged_out};
+use crate::service::calendar_service::{add_calendar, add_calendar_day};
 use crate::web::authentication_handlers::{
     login_page, login_post, logout_get, signup_page, signup_post,
 };
-use crate::web::calendar_handlers::{
-    add_day_post, create_calendar_get, create_calendar_post, show_calendar, show_day_get,
-    subscribe_post, unlock_get, unlock_post,
-};
+use crate::web::calendar_handlers::{add_day_post, create_calendar_get, create_calendar_post, delete_day_post, show_calendar, show_day_get, subscribe_post, unlock_get, unlock_post};
 use crate::web::handler::welcome_handler;
 use crate::web::member_handlers::dashboard_handler;
 use axum::routing::{get_service, post};
@@ -37,18 +35,24 @@ async fn main() {
         .nest_service("/static", get_service(ServeDir::new("static")));
 
     let day_router = Router::new()
-        .route("/create", post(add_day_post))
         .route("/{day_id}", get(show_day_get))
-        .route("/{day_id}/unlock", post(unlock_post).get(unlock_get));
+        .route("/{day_id}/delete", post(delete_day_post))
+        .route("/{day_id}/unlock", post(unlock_post).get(unlock_get))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            add_calendar_day,
+        ))
+        .route("/create", post(add_day_post));
 
     let calendar_router = Router::new()
+        .route("/{calendar_id}", get(show_calendar))
+        .route("/{calendar_id}/subscribe", post(subscribe_post))
+        .nest("/{calendar_id}/day", day_router)
+        .route_layer(middleware::from_fn_with_state(state.clone(), add_calendar))
         .route(
             "/create",
             get(create_calendar_get).post(create_calendar_post),
-        )
-        .route("/{calendar_id}", get(show_calendar))
-        .route("/{calendar_id}/subscribe", post(subscribe_post))
-        .nest("/{calendar_id}/day", day_router);
+        );
 
     let user_router = Router::new()
         .route("/home", get(dashboard_handler))

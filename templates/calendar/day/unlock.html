@@ -36,8 +36,9 @@
             </div>
             {% endif %}
 
-            <form action="/calendar/{{cal_id}}/day/{{day_id}}/unlock" method="post" class="d-flex flex-column gap-3">
+            <form action="/calendar/{{day.day.calendar_id}}/day/{{day.day.id}}/unlock" method="post" class="d-flex flex-column gap-3">
                 <div class="mb-4">
+                    {% if day.day.protected %}
                     {% if let Some(code) = code %}
                     <input
                             class="form-control form-control-romantic"
@@ -57,6 +58,7 @@
                             required
                             type="text"
                     />
+                    {% endif %}
                     {% endif %}
                 </div>
 

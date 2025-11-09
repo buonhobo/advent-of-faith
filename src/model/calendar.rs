@@ -1,3 +1,5 @@
+use chacha20poly1305::aead::Aead;
+use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use std::fmt::Display;
@@ -25,7 +27,7 @@ impl Status {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Calendar {
     pub id: i32,
     pub owner_id: i32,
@@ -33,7 +35,7 @@ pub struct Calendar {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CalendarDay {
     pub id: i32,
     pub calendar_id: i32,
@@ -63,12 +65,7 @@ impl UserDay {
         }
     }
 }
-
-pub struct RichCalendar {
-    pub calendar: Calendar,
-    pub days: Vec<CalendarDay>,
-}
-
+#[derive(Clone)]
 pub struct UserCalendar {
     pub calendar: Calendar,
     pub subscribed_at: Option<DateTime<Utc>>,
@@ -77,14 +74,34 @@ pub struct RichUserCalendar {
     pub calendar: UserCalendar,
     pub days: Vec<UserDay>,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UserDay {
     pub day: CalendarDay,
     pub unlocked_at: Option<DateTime<Utc>>,
+    day_key: Option<Vec<u8>>,
 }
 
-pub struct RichContent {
-    pub content: String,
-    pub user_day: UserDay,
-    pub calendar: Calendar,
+impl UserDay {
+    pub fn new(
+        day: CalendarDay,
+        unlocked_at: Option<DateTime<Utc>>,
+        day_key: Option<Vec<u8>>,
+    ) -> Self {
+        UserDay {
+            unlocked_at,
+            day_key,
+            day,
+        }
+    }
+
+    pub fn get_decryption_key(&self, cypher: &[u8], salt: &[u8]) -> Result<Vec<u8>, String> {
+        let key = self.day_key.clone().ok_or(format!(
+            "there is no decryption key for day {}",
+            self.day.id
+        ))?;
+        let cypher = ChaCha20Poly1305::new(key.as_slice().into())
+            .decrypt(salt.into(), cypher)
+            .map_err(|e| format!("Decryption failed, the key is probably outdated: {:?}", e))?;
+        Ok(cypher)
+    }
 }

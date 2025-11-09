@@ -1,6 +1,4 @@
-use crate::model::calendar::{
-    Calendar, CalendarDay, RichContent, RichUserCalendar, UserCalendar, UserDay,
-};
+use crate::model::calendar::{Calendar, CalendarDay, RichUserCalendar, UserCalendar, UserDay};
 use crate::model::user::User;
 use chacha20poly1305::aead::Aead;
 use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
@@ -36,21 +34,6 @@ impl CalendarRepository {
         .map_err(|e| e.to_string())
     }
 
-    pub async fn get_calendar(&self, calendar_id: i32) -> Result<Calendar, String> {
-        sqlx::query_as!(
-            Calendar,
-            r#"
-            SELECT *
-            FROM calendars
-            WHERE id = $1
-            "#,
-            calendar_id
-        )
-        .fetch_one(&self.db_pool)
-        .await
-        .map_err(|e| e.to_string())
-    }
-
     pub async fn get_subscriptions(&self, user: &User) -> Result<Vec<UserCalendar>, String> {
         let result = sqlx::query!(
             r#"
@@ -79,14 +62,14 @@ impl CalendarRepository {
         Ok(result)
     }
 
-    pub async fn subscribe(&self, user: &User, calendar_id: i32) -> Result<(), String> {
+    pub async fn subscribe(&self, user: &User, calendar: &Calendar) -> Result<(), String> {
         sqlx::query!(
             r#"
             INSERT INTO calendar_subscriptions (user_id, calendar_id)
             VALUES ($1,$2)
             "#,
             user.id,
-            calendar_id
+            calendar.id
         )
         .execute(&self.db_pool)
         .await
@@ -94,32 +77,25 @@ impl CalendarRepository {
         .map(|_| ())
     }
 
-    pub async fn get_days(&self, calendar: &Calendar) -> Result<Vec<CalendarDay>, String> {
-        sqlx::query_as!(
-            CalendarDay,
-            r#"
-            SELECT id, calendar_id, unlocks_at, protected
-            FROM calendar_days
-            WHERE calendar_id = $1
-            ORDER BY unlocks_at
-            "#,
-            calendar.id
-        )
-        .fetch_all(&self.db_pool)
-        .await
-        .map_err(|e| e.to_string())
+    pub async fn get_calendar_user_days(
+        &self,
+        user_calendar: &UserCalendar,
+        user: &User,
+    ) -> Result<Vec<UserDay>, String> {
+        return self
+            .get_user_days_without_key(&vec![user_calendar.calendar.id], user)
+            .await;
     }
 
-    pub async fn get_user_days(
+    pub async fn get_user_days_without_key(
         &self,
         calendar_ids: &[i32],
         user: &User,
-    ) -> Result<Vec<(i32, UserDay)>, String> {
+    ) -> Result<Vec<UserDay>, String> {
         let all_days = sqlx::query!(
             r#"
             SELECT unlocked_at, unlocks_at, cd.calendar_id, cd.id as day_id, protected
             FROM calendar_days as cd
-            JOIN calendars as c ON cd.calendar_id = c.id
             LEFT JOIN (SELECT * FROM user_days WHERE user_id = $2) as ud ON cd.id = ud.day_id
             WHERE cd.calendar_id = ANY($1)
             ORDER BY unlocks_at
@@ -134,21 +110,97 @@ impl CalendarRepository {
         let user_days = all_days
             .into_iter()
             .map(|record| {
-                let cal_id = record.calendar_id;
-                let user_day = UserDay {
-                    unlocked_at: record.unlocked_at,
-                    day: CalendarDay {
-                        id: record.day_id,
-                        unlocks_at: record.unlocks_at,
-                        calendar_id: record.calendar_id,
-                        protected: record.protected,
-                    },
+                let day = CalendarDay {
+                    id: record.day_id,
+                    unlocks_at: record.unlocks_at,
+                    calendar_id: record.calendar_id,
+                    protected: record.protected,
                 };
-                (cal_id, user_day)
+                let user_day = UserDay::new(day, record.unlocked_at, None);
+                user_day
             })
             .collect();
 
         Ok(user_days)
+    }
+
+    pub async fn get_user_day_with_key(&self, day_id: i32, user: &User) -> Result<UserDay, String> {
+        let record = sqlx::query!(
+            r#"
+            SELECT unlocked_at, unlocks_at, cd.calendar_id, cd.id as day_id, protected, day_key_salt, day_key_encr
+            FROM calendar_days as cd
+            LEFT JOIN (SELECT * FROM user_days WHERE user_id = $2) as ud ON cd.id = ud.day_id
+            WHERE cd.id = $1
+            "#,
+            day_id,
+            user.id
+        )
+            .fetch_optional(&self.db_pool)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let Some(record) = record else {
+            return Err(format!("Calendar day {} not found", day_id));
+        };
+
+        let day_key = if record.protected && record.unlocked_at.is_some() {
+            let key = Self::get_day_key(
+                user,
+                record
+                    .day_key_salt
+                    .ok_or(format!("Calendar day {} salt not found", day_id))?,
+                record
+                    .day_key_encr
+                    .ok_or(format!("Calendar day {} cypher not found", day_id))?,
+            );
+            Some(key?)
+        } else {
+            None
+        };
+
+        let calendar_day = CalendarDay {
+            id: record.day_id,
+            calendar_id: record.calendar_id,
+            unlocks_at: record.unlocks_at,
+            protected: record.protected,
+        };
+        let user_day = UserDay::new(calendar_day, record.unlocked_at, day_key);
+        return Ok(user_day);
+    }
+
+    pub async fn get_user_calendar(
+        &self,
+        cal_id: i32,
+        user: &User,
+    ) -> Result<UserCalendar, String> {
+        let record = sqlx::query!(
+            r#"
+            SELECT subscribed_at, owner_id,created_at,title, calendar_id
+            FROM calendars as c
+            LEFT JOIN (SELECT * FROM calendar_subscriptions WHERE user_id = $2) as ud ON c.id = ud.calendar_id
+            WHERE c.id = $1
+            "#,
+            cal_id,
+            user.id
+        )
+            .fetch_optional(&self.db_pool)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let Some(record) = record else {
+            return Err(format!("Calendar {} not found", cal_id));
+        };
+
+        let user_cal = UserCalendar {
+            subscribed_at: record.subscribed_at,
+            calendar: Calendar {
+                id: cal_id,
+                owner_id: record.owner_id,
+                title: record.title,
+                created_at: record.created_at,
+            },
+        };
+        return Ok(user_cal);
     }
 
     fn get_day_key(
@@ -163,35 +215,20 @@ impl CalendarRepository {
         Ok(dk)
     }
 
-    pub async fn get_content(&self, user: &User, day_id: i32) -> Result<RichContent, String> {
+    pub async fn get_content(&self, user_day: &UserDay) -> Result<String, String> {
         let record = sqlx::query!(
-            "SELECT calendar_id, day_content.day_id, protected, day_key_salt, day_key_encr, 
-                    decryption_key_salt, content_salt, content, unlocked_at,unlocks_at,owner_id,
-                    title, created_at, decryption_key_encr
+            "SELECT decryption_key_salt, content_salt, content, decryption_key_encr
             FROM day_content
-            join user_days on user_days.day_id = day_content.day_id
-            join calendar_days on calendar_days.id = day_content.day_id
-            join calendars on calendars.id = calendar_days.calendar_id
-            where day_content.day_id = $1 and user_days.user_id = $2
+            where day_content.day_id = $1
             ",
-            day_id,
-            user.id
+            user_day.day.id,
         )
         .fetch_optional(&self.db_pool)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or(format!(
-            "The user {} has not unlocked content for day {}",
-            user.username, day_id
-        ))?;
+        .ok_or(format!("There us no content for day {}", user_day.day.id))?;
 
-        let content = if record.protected {
-            let dks = record
-                .day_key_salt
-                .ok_or("The day is protected but there is no user day key salt")?;
-            let dke = record
-                .day_key_encr
-                .ok_or("The day is encrypted but there is no user day key cyphertext")?;
+        let content = if user_day.day.protected {
             let decr_key_salt = record
                 .decryption_key_salt
                 .ok_or("The content is protected but there is no decryption key salt")?;
@@ -201,39 +238,15 @@ impl CalendarRepository {
             let content_salt = record
                 .content_salt
                 .ok_or("The content is protected but there is no content salt")?;
-            dbg!(&dks, &dke, &decr_key_salt, &decr_key_encr);
-            let day_key = Self::get_day_key(user, dks, dke)?;
-            dbg!(&day_key);
-            let decryption_key = Self::decrypt_content(&day_key, &decr_key_encr, &decr_key_salt)?;
-            dbg!(&decryption_key);
+            let decryption_key = user_day.get_decryption_key(&decr_key_encr, &decr_key_salt)?;
             Self::decrypt_content(&decryption_key, &record.content, &content_salt)?
         } else {
             record.content
         };
-        dbg!(line!());
 
         let content = String::from_utf8(content).map_err(|e| e.to_string())?;
-        let user_day = UserDay {
-            unlocked_at: record.unlocked_at,
-            day: CalendarDay {
-                id: record.day_id,
-                calendar_id: record.calendar_id,
-                unlocks_at: record.unlocks_at,
-                protected: record.protected,
-            },
-        };
-        let calendar = Calendar {
-            id: record.calendar_id,
-            owner_id: record.owner_id,
-            title: record.title,
-            created_at: record.created_at,
-        };
 
-        Ok(RichContent {
-            content,
-            user_day,
-            calendar,
-        })
+        Ok(content)
     }
 
     fn decrypt_content(
@@ -265,14 +278,15 @@ impl CalendarRepository {
             .map(|user_calendar| user_calendar.calendar.id)
             .collect::<Vec<_>>();
 
-        let user_days = self.get_user_days(&calendar_ids, user).await?;
-        let mut user_map =
-            user_days
-                .into_iter()
-                .fold(HashMap::new(), |mut acc, (cal_id, user_day)| {
-                    acc.entry(cal_id).or_insert_with(Vec::new).push(user_day);
-                    acc
-                });
+        let user_days = self.get_user_days_without_key(&calendar_ids, user).await?;
+        let mut user_map = user_days
+            .into_iter()
+            .fold(HashMap::new(), |mut acc, user_day| {
+                acc.entry(user_day.day.calendar_id)
+                    .or_insert_with(Vec::new)
+                    .push(user_day);
+                acc
+            });
 
         let calendars = calendars
             .into_iter()
@@ -285,57 +299,10 @@ impl CalendarRepository {
         Ok(calendars)
     }
 
-    pub async fn get_user_calendar(
-        &self,
-        calendar_id: i32,
-        user: &User,
-    ) -> Result<RichUserCalendar, String> {
-        let query = sqlx::query!(
-            r#"
-            SELECT calendars.id, calendars.title, calendars.created_at, calendars.owner_id, subscribed_at
-            FROM calendars
-            LEFT JOIN (SELECT * FROM calendar_subscriptions WHERE calendar_subscriptions.user_id = $1) as cs
-            ON cs.calendar_id = calendars.id
-            WHERE calendars.id = $2
-            "#,
-            user.id,
-            calendar_id
-        );
-
-        let record = query
-            .fetch_optional(&self.db_pool)
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or("This calendar does not exist")?;
-
-        let user_cal = UserCalendar {
-            calendar: Calendar {
-                id: record.id,
-                owner_id: record.owner_id,
-                title: record.title,
-                created_at: record.created_at,
-            },
-            subscribed_at: record.subscribed_at,
-        };
-        let user_days = self
-            .get_user_days([user_cal.calendar.id, user_cal.calendar.id].as_ref(), &user)
-            .await?
-            .into_iter()
-            .map(|(_, day)| day)
-            .collect();
-
-        let rich_cal = RichUserCalendar {
-            calendar: user_cal,
-            days: user_days,
-        };
-
-        Ok(rich_cal)
-    }
-
     pub async fn add_day(
         &self,
         user: &User,
-        calendar_id: i32,
+        user_calendar: &UserCalendar,
         unlocks_at: DateTime<Utc>,
         password: Option<String>,
         content: String,
@@ -378,7 +345,7 @@ impl CalendarRepository {
             "INSERT INTO calendar_days (calendar_id, unlocks_at, protected)
                 VALUES ($1, $2, $3)
                 RETURNING id",
-            calendar_id,
+            user_calendar.calendar.id,
             unlocks_at,
             protected
         )
@@ -436,19 +403,19 @@ impl CalendarRepository {
     pub async fn unlock_day(
         &self,
         user: &User,
-        day_id: i32,
+        user_day: &UserDay,
         code: Option<String>,
     ) -> Result<(), String> {
         let record = sqlx::query!(
             "SELECT decryption_key_encr, decryption_key_salt
                 FROM day_content
                 where day_id = $1",
-            day_id
+            user_day.day.id
         )
         .fetch_optional(&self.db_pool)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or("This day does not exist")?;
+        .ok_or("This day does not exist or it can't be unlocked yet")?;
 
         let (dks, dke) = if let (Some(dke), Some(dks)) =
             (record.decryption_key_encr, record.decryption_key_salt)
@@ -457,13 +424,6 @@ impl CalendarRepository {
             let day_key = Self::generate_day_key(&code);
             Self::decrypt_content(&day_key, &dke, &dks)?;
             let (day_key_salt, day_key_encr) = Self::encrypt_day_key(&day_key, &user.content_key);
-            dbg!(
-                "unlocked successfully",
-                code,
-                day_key,
-                day_key_salt,
-                &day_key_encr
-            );
             (Some(day_key_salt.to_vec()), Some(day_key_encr))
         } else {
             (None, None)
@@ -473,9 +433,20 @@ impl CalendarRepository {
             "INSERT INTO user_days (user_id, day_id, day_key_salt, day_key_encr) 
             VALUES ($1, $2, $3, $4)",
             user.id,
-            day_id,
+            user_day.day.id,
             dks,
             dke
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| e.to_string())
+        .map(|_| ())
+    }
+
+    pub async fn delete_day(&self, user_day: &UserDay) -> Result<(), String> {
+        sqlx::query!(
+            "DELETE FROM public.calendar_days WHERE id = $1",
+            user_day.day.id,
         )
         .execute(&self.db_pool)
         .await

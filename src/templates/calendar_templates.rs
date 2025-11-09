@@ -1,4 +1,4 @@
-use crate::model::calendar::{RichContent, RichUserCalendar};
+use crate::model::calendar::{UserCalendar, UserDay};
 use crate::model::user::User;
 use askama::Template;
 
@@ -17,25 +17,42 @@ impl CreateCalendarTemplate {
 #[derive(Template)]
 #[template(path = "calendar/show.html")]
 pub struct ShowCalendarTemplate {
-    calendar: RichUserCalendar,
+    user_calendar: UserCalendar,
+    days: Vec<UserDay>,
     user: User,
 }
 
 impl ShowCalendarTemplate {
-    pub fn new(calendar: RichUserCalendar, user: User) -> ShowCalendarTemplate {
-        ShowCalendarTemplate { calendar, user }
+    pub fn new(user_calendar: UserCalendar, days: Vec<UserDay>, user: User) -> ShowCalendarTemplate {
+        ShowCalendarTemplate {
+            user_calendar,
+            days,
+            user,
+        }
     }
 }
 
 #[derive(Template)]
 #[template(path = "calendar/day/show.html")]
 pub struct ShowDayTemplate {
-    content: RichContent,
+    user_day: UserDay,
+    user_calendar: UserCalendar,
+    content: String,
     user: User,
 }
 impl ShowDayTemplate {
-    pub fn new(content: RichContent, user: User) -> ShowDayTemplate {
-        ShowDayTemplate { content, user }
+    pub fn new(
+        user_day: UserDay,
+        user_calendar: UserCalendar,
+        content: String,
+        user: User,
+    ) -> ShowDayTemplate {
+        ShowDayTemplate {
+            user_day,
+            user_calendar,
+            content,
+            user,
+        }
     }
 }
 
@@ -43,20 +60,16 @@ impl ShowDayTemplate {
 #[template(path = "calendar/day/unlock.html")]
 pub struct UnlockDayTemplate {
     code: Option<String>,
-    user: User,
+    day: UserDay,
     message: Option<String>,
-    day_id: i32,
-    cal_id: i32,
 }
 
 impl UnlockDayTemplate {
-    pub fn new(code: Option<String>, user: User, day_id: i32, cal_id:i32) -> UnlockDayTemplate {
+    pub fn new(code: Option<String>, day: UserDay) -> UnlockDayTemplate {
         UnlockDayTemplate {
             code,
-            user,
+            day,
             message: None,
-            day_id,
-            cal_id
         }
     }
 

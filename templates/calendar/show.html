@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Calendar: {{calendar.calendar.calendar.title}}</title>
+    <title>Calendar: {{user_calendar.calendar.title}}</title>
     <link
-            rel="stylesheet"
+            crossorigin="anonymous"
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
             integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-            crossorigin="anonymous"
+            rel="stylesheet"
     />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
     <link
             href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;600&display=swap"
             rel="stylesheet"
@@ -76,7 +76,7 @@
             background: var(--card-bg);
             backdrop-filter: blur(10px);
             border: 1px solid var(--card-border);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             color: var(--ink);
             text-decoration: none;
@@ -84,7 +84,7 @@
 
         .day-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 12px 28px rgba(0,0,0,0.5);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
             z-index: 2;
         }
 
@@ -111,9 +111,22 @@
         }
 
         /* Status colors */
-        .day-future { background: rgba(255, 255, 255, 0.05); color: var(--muted); cursor: not-allowed; }
-        .day-locked { background: rgba(215, 161, 89, 0.25); color: #ffd9b3; }
-        .day-unlocked { background: rgba(215, 161, 89, 0.55); color: #2b1b12; font-weight: 600; }
+        .day-future {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--muted);
+            cursor: not-allowed;
+        }
+
+        .day-locked {
+            background: rgba(215, 161, 89, 0.25);
+            color: #ffd9b3;
+        }
+
+        .day-unlocked {
+            background: rgba(215, 161, 89, 0.55);
+            color: #2b1b12;
+            font-weight: 600;
+        }
 
         /* --- Add-Day Form --- */
         .add-day-form {
@@ -135,71 +148,84 @@
     </style>
 </head>
 <body>
-<div class="wrap py-5">
-    <main class="main-content">
-        <section class="calendar-header-section card-frost p-4 p-md-5">
-            <h1 class="title mb-2">{{calendar.calendar.calendar.title}}</h1>
-            <div class="calendar-meta">Created on {{ calendar.calendar.calendar.created_at.format("%b %d, %Y") }}</div>
-            {% if let Some(date) = calendar.calendar.subscribed_at %}
-            <div class="calendar-meta">Subscribed on {{ date.format("%b %d, %Y") }}</div>
-            {% endif %}
-        </section>
-
-        <section class="days-row-wrapper mt-4">
-            <div class="days-column">
-                {% for user_day in calendar.days %}
-                {% let status = user_day.get_status().as_str() %}
-                {% if status == "future" %}
-                <div class="day-card day-future">
-                    <div class="day-number">{{ user_day.day.unlocks_at.format("%b %d %Y") }}</div>
-                    <div class="day-details">
-                        <div class="day-info">Available at {{ user_day.day.unlocks_at.format("%H:%M") }}</div>
-                    </div>
-                </div>
-                {% elif status == "locked" %}
-                <a href="/calendar/{{calendar.calendar.calendar.id}}/day/{{user_day.day.id}}" class="day-card day-locked">
-                    <div class="day-number">{{ user_day.day.unlocks_at.format("%b %d %Y") }}</div>
-                    <div class="day-details">
-                        <div class="day-info">Available</div>
-                    </div>
-                </a>
-                {% else %}
-                <a href="/calendar/{{calendar.calendar.calendar.id}}/day/{{user_day.day.id}}" class="day-card day-unlocked">
-                    <div class="day-number">{{ user_day.day.unlocks_at.format("%b %d %Y") }}</div>
-                    <div class="day-details">
-                        <div class="day-info">Unlocked on {{ user_day.unlocked_at.unwrap().format("%b %d %Y at %H:%M") }}</div>
-                    </div>
-                </a>
+<div class="wrap">
+    <main class="container-fluid px-3 py-5">
+        <div class="main-content">
+            <section class="calendar-header-section card-frost p-4 p-md-5">
+                <h1 class="title mb-2">{{user_calendar.calendar.title}}</h1>
+                <div class="calendar-meta">Created on {{ user_calendar.calendar.created_at.format("%b %d, %Y") }}</div>
+                {% if let Some(date) = user_calendar.subscribed_at %}
+                <div class="calendar-meta">Subscribed on {{ date.format("%b %d, %Y") }}</div>
                 {% endif %}
-                {% endfor %}
-            </div>
-        </section>
+            </section>
+
+            <section class="days-row-wrapper mt-4">
+                <div class="days-column">
+                    {% for user_day in days %}
+                    {% let status = user_day.get_status().as_str() %}
+                    {% if status == "future" %}
+                    <div class="day-card day-future">
+                        <div class="day-number">{{ user_day.day.unlocks_at.format("%b %d %Y") }}</div>
+                        <div class="day-details">
+                            <div class="day-info">Available at {{ user_day.day.unlocks_at.format("%H:%M") }}</div>
+                        </div>
+                    </div>
+                    {% elif status == "locked" %}
+                    <a class="day-card day-locked"
+                       href="/calendar/{{user_calendar.calendar.id}}/day/{{user_day.day.id}}">
+                        <div class="day-number">{{ user_day.day.unlocks_at.format("%b %d %Y") }}</div>
+                        <div class="day-details">
+                            <div class="day-info">Available</div>
+                        </div>
+                    </a>
+                    {% else %}
+                    <a class="day-card day-unlocked"
+                       href="/calendar/{{user_calendar.calendar.id}}/day/{{user_day.day.id}}">
+                        <div class="day-number">{{ user_day.day.unlocks_at.format("%b %d %Y") }}</div>
+                        <div class="day-details">
+                            <div class="day-info">Unlocked on {{ user_day.unlocked_at.unwrap().format("%b %d %Y at
+                                %H:%M") }}
+                            </div>
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </section>
 
 
-        {% if user.id == calendar.calendar.calendar.owner_id %}
-        <form action="/calendar/{{calendar.calendar.calendar.id}}/day/create"
-              class="add-day-form mt-3 d-flex gap-2" id="add-day-form" method="post">
-            <input class="form-control-romantic flex-grow-1" id="unlocks_at_input" placeholder="Select unlock date"
-                   required type="text">
-            <input
-                    class="form-control form-control-romantic"
-                    id="content"
-                    name="content"
-                    placeholder="Content"
-                    required
-                    type="text"
-            />
-            <input
-                    class="form-control form-control-romantic"
-                    id="password"
-                    name="password"
-                    placeholder="Password"
-                    type="password"
-            />
-            <input id="unlocks_at" name="unlocks_at" type="hidden">
-            <button class="btn btn-honey" type="submit">Add Day</button>
-        </form>
-        {% endif %}
+            {% if user.id == user_calendar.calendar.owner_id %}
+            <form action="/calendar/{{user_calendar.calendar.id}}/day/create"
+                  class="add-day-form mt-3 d-flex gap-2" id="add-day-form" method="post">
+                <input class="form-control-romantic flex-grow-1" id="unlocks_at_input" placeholder="Select unlock date"
+                       required type="text">
+                <input
+                        class="form-control form-control-romantic"
+                        id="content"
+                        name="content"
+                        placeholder="Content"
+                        required
+                        type="text"
+                />
+                <input
+                        class="form-control form-control-romantic"
+                        id="password"
+                        name="password"
+                        placeholder="Password"
+                        type="password"
+                />
+                <input id="unlocks_at" name="unlocks_at" type="hidden">
+                <button class="btn btn-honey" type="submit">Add Day</button>
+            </form>
+            {% elif user_calendar.subscribed_at.is_none() %}
+            <form action="/calendar/{{user_calendar.calendar.id}}/subscribe"
+                  class="add-day-form mt-3 d-flex gap-2" id="add-day-form" method="post">
+                <button class="btn btn-honey" type="submit">Subscribe</button>
+            </form>
+            {% endif %}
+            <a class="create-calendar-link" href="/home">Back to dashboard</a>
+
+        </div>
     </main>
 </div>
 <footer class="container text-center pb-4">

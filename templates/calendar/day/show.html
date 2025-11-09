@@ -28,15 +28,24 @@
 <div class="wrap">
     <main class="container d-flex align-items-center justify-content-center py-5">
         <section class="card-frost p-4 p-md-5 w-100" style="max-width: 540px;">
-            <h1 class="title display-5 fw-semibold mb-4 text-center">{{ content.user_day.day.unlocks_at.format("%b %d %Y") }}</h1>
-            <p class="subtitle lead mb-4 text-center">{{content.content}}</p>
+            <h1 class="title display-5 fw-semibold mb-4 text-center">{{ user_day.day.unlocks_at.format("%b %d %Y")
+                }}</h1>
+            <p class="subtitle lead mb-4 text-center">{{content}}</p>
 
 
-            <form action="/calendar/{{content.calendar.id}}" method="get" class="d-flex flex-column gap-3">
+            <form action="/calendar/{{user_calendar.calendar.id}}" class="d-flex flex-column gap-3" method="get">
                 <div class="d-grid">
                     <button class="btn btn-honey btn-lg px-4" type="submit">Back to calendar</button>
                 </div>
-
+            </form>
+            {% if user_calendar.calendar.owner_id == user.id %}
+            <form action="/calendar/{{user_calendar.calendar.id}}/day/{{user_day.day.id}}/delete"
+                  class="d-flex flex-column gap-3" method="post">
+                <div class="d-grid mt-2">
+                    <button class="btn btn-ghost btn-lg px-4 " type="submit">Delete day</button>
+                </div>
+            </form>
+            {%endif%}
         </section>
     </main>
 

@@ -8,10 +8,8 @@ use axum::http::uri::PathAndQuery;
 use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Redirect, Response};
-use axum::Form;
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
-use serde::Deserialize;
 use std::convert::Infallible;
 use uuid::Uuid;
 
@@ -42,21 +40,15 @@ where
     }
 }
 
-#[derive(Deserialize)]
-struct Target {
-    next: Option<String>,
-}
-
 pub async fn require_logged_out(
     user: Option<User>,
-    Form(target): Form<Target>,
     request: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
     if user.is_none() {
         Ok(next.run(request).await)
     } else {
-        Ok(Redirect::to(&target.next.unwrap_or_else(|| String::from("/"))).into_response())
+        Ok(Redirect::to("/").into_response())
     }
 }
 

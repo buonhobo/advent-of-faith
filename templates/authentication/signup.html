@@ -87,9 +87,6 @@
                     />
                     {% endif %}
                 </div>
-
-                <input name="next" type="hidden" value='{{ next.get_next_or("/") }}'/>
-
                 <div class="d-grid">
                     <button class="btn btn-honey btn-lg px-4" type="submit">Continue</button>
                 </div>
@@ -97,7 +94,7 @@
 
             <p class="subtitle text-center mt-4 mb-0">
                 Already have an account?
-                <a class="link-underline link-underline-opacity-0" href='/login?next={{ next.get_next_or("") }}'
+                <a class="link-underline link-underline-opacity-0" href='/login'
                    style="color: #ffd9b3;">
                     Log In
                 </a>

@@ -23,7 +23,11 @@ pub struct ShowCalendarTemplate {
 }
 
 impl ShowCalendarTemplate {
-    pub fn new(user_calendar: UserCalendar, days: Vec<UserDay>, user: User) -> ShowCalendarTemplate {
+    pub fn new(
+        user_calendar: UserCalendar,
+        days: Vec<UserDay>,
+        user: User,
+    ) -> ShowCalendarTemplate {
         ShowCalendarTemplate {
             user_calendar,
             days,

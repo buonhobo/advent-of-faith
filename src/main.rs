@@ -10,7 +10,10 @@ use crate::service::calendar_service::{add_calendar, add_calendar_day};
 use crate::web::authentication_handlers::{
     login_page, login_post, logout_get, signup_page, signup_post,
 };
-use crate::web::calendar_handlers::{add_day_post, create_calendar_get, create_calendar_post, delete_day_post, show_calendar, show_day_get, subscribe_post, unlock_get, unlock_post};
+use crate::web::calendar_handlers::{
+    add_day_post, create_calendar_get, create_calendar_post, delete_day_post, show_calendar,
+    show_day_get, subscribe_post, unlock_get, unlock_post,
+};
 use crate::web::handler::welcome_handler;
 use crate::web::member_handlers::dashboard_handler;
 use axum::routing::{get_service, post};

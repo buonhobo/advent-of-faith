@@ -22,7 +22,6 @@ impl UserRepository {
     }
 
     pub async fn authenticate_user(&self, user: &LoginCredentials) -> Result<User, String> {
-
         let res = sqlx::query!(r#"select  id, username, role as "role:UserRole", password_hash, master_key_salt, content_key_salt, content_key_encr
                                 from users where username = ($1)"#, user.username)
             .fetch_optional(&self.db_pool)

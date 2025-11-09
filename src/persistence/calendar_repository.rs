@@ -173,9 +173,10 @@ impl CalendarRepository {
         cal_id: i32,
         user: &User,
     ) -> Result<UserCalendar, String> {
+        dbg!("about to get calendar");
         let record = sqlx::query!(
             r#"
-            SELECT subscribed_at, owner_id,created_at,title, calendar_id
+            SELECT subscribed_at, owner_id,created_at,title
             FROM calendars as c
             LEFT JOIN (SELECT * FROM calendar_subscriptions WHERE user_id = $2) as ud ON c.id = ud.calendar_id
             WHERE c.id = $1
@@ -184,10 +185,9 @@ impl CalendarRepository {
             user.id
         )
             .fetch_optional(&self.db_pool)
-            .await
-            .map_err(|e| e.to_string())?;
+            .await;
 
-        let Some(record) = record else {
+        let Ok(Some(record)) = record else {
             return Err(format!("Calendar {} not found", cal_id));
         };
 

@@ -167,7 +167,7 @@
                     <div class="day-card day-future">
                         <div class="day-number">{{ user_day.day.unlocks_at.format("%b %d %Y") }}</div>
                         <div class="day-details">
-                            <div class="day-info">Available at {{ user_day.day.unlocks_at.format("%H:%M") }}</div>
+                            <div class="day-info">Available at {{ user_day.day.unlocks_at.format("%H:%M") }} UTC</div>
                         </div>
                     </div>
                     {% elif status == "locked" %}
@@ -184,7 +184,7 @@
                         <div class="day-number">{{ user_day.day.unlocks_at.format("%b %d %Y") }}</div>
                         <div class="day-details">
                             <div class="day-info">Unlocked on {{ user_day.unlocked_at.unwrap().format("%b %d %Y at
-                                %H:%M") }}
+                                %H:%M") }} UTC
                             </div>
                         </div>
                     </a>

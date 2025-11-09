@@ -1,15 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Day — Advent of Faith</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link
+            crossorigin="anonymous"
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+            integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+            rel="stylesheet"
+    />
+
+    <!-- Fonts (same pairing as home) -->
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link
+            href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;600&display=swap"
+            rel="stylesheet"
+    />
+
+    <!-- Shared theme -->
+    <link href="/static/css/theme.css" rel="stylesheet"/>
 </head>
 <body>
-<p>
-    {{ content.content }}
-</p>
-<footer class="container text-center pb-4">
-    <small class="footer-note">Made with 💛 by Alex</small>
-</footer>
+<div class="wrap">
+    <main class="container d-flex align-items-center justify-content-center py-5">
+        <section class="card-frost p-4 p-md-5 w-100" style="max-width: 540px;">
+            <h1 class="title display-5 fw-semibold mb-4 text-center">{{ content.user_day.day.unlocks_at.format("%b %d %Y") }}</h1>
+            <p class="subtitle lead mb-4 text-center">{{content.content}}</p>
+
+
+            <form action="/calendar/{{content.calendar.id}}" method="get" class="d-flex flex-column gap-3">
+                <div class="d-grid">
+                    <button class="btn btn-honey btn-lg px-4" type="submit">Back to calendar</button>
+                </div>
+
+        </section>
+    </main>
+
+    <footer class="container text-center pb-4">
+        <small class="footer-note">Made with 💛 by Alex</small>
+    </footer>
+</div>
+
+<!-- Bootstrap JS (optional) -->
+<script
+        crossorigin="anonymous"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+></script>
 </body>
 </html>

@@ -82,9 +82,8 @@ impl CalendarRepository {
         user_calendar: &UserCalendar,
         user: &User,
     ) -> Result<Vec<UserDay>, String> {
-        return self
-            .get_user_days_without_key(&vec![user_calendar.calendar.id], user)
-            .await;
+        self.get_user_days_without_key(&vec![user_calendar.calendar.id], user)
+            .await
     }
 
     pub async fn get_user_days_without_key(
@@ -165,7 +164,7 @@ impl CalendarRepository {
             protected: record.protected,
         };
         let user_day = UserDay::new(calendar_day, record.unlocked_at, day_key);
-        return Ok(user_day);
+        Ok(user_day)
     }
 
     pub async fn get_user_calendar(
@@ -199,7 +198,7 @@ impl CalendarRepository {
                 created_at: record.created_at,
             },
         };
-        return Ok(user_cal);
+        Ok(user_cal)
     }
 
     fn get_day_key(

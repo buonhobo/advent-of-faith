@@ -173,7 +173,6 @@ impl CalendarRepository {
         cal_id: i32,
         user: &User,
     ) -> Result<UserCalendar, String> {
-        dbg!("about to get calendar");
         let record = sqlx::query!(
             r#"
             SELECT subscribed_at, owner_id,created_at,title

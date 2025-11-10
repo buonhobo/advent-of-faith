@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update calendar_days \n                        set protected = true\n                        where id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c2dbbe0b9dfeb3451c1ceff595b6a392e7aa50c41ed7cefb1bafd0b9a05e4c40"
+}

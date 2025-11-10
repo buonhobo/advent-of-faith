@@ -6,20 +6,20 @@
     <meta content="width=device-width, initial-scale=1" name="viewport"/>
 
     <link
-            rel="stylesheet"
+            crossorigin="anonymous"
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
             integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-            crossorigin="anonymous"
+            rel="stylesheet"
     />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
     <link
             href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;600&display=swap"
             rel="stylesheet"
     >
 
-    <link rel="stylesheet" href="/static/css/theme.css">
+    <link href="/static/css/theme.css" rel="stylesheet">
 </head>
 
 <body>
@@ -36,13 +36,17 @@
             {% else %}
             {% for rich_cal in user_calendars %}
             <div class="calendar-card">
-                <a href="/calendar/{{ rich_cal.calendar.calendar.id }}" class="calendar-header text-decoration-none">
+                <a class="calendar-header text-decoration-none" href="/calendar/{{ rich_cal.calendar.calendar.id }}">
                     <div>
                         <div class="calendar-title">{{ rich_cal.calendar.calendar.title }}</div>
                         {% if rich_cal.calendar.calendar.owner_id == user.id %}
-                        <div class="calendar-meta">Created on {{ rich_cal.calendar.calendar.created_at.format("%b %d, %Y") }}</div>
+                        <div class="calendar-meta">Created on {{ rich_cal.calendar.calendar.created_at.format("%b %d,
+                            %Y") }}
+                        </div>
                         {% else %}
-                        <div class="calendar-meta">Subscribed on {{ rich_cal.calendar.subscribed_at.unwrap().format("%b %d, %Y") }}</div>
+                        <div class="calendar-meta">Subscribed on {{ rich_cal.calendar.subscribed_at.unwrap().format("%b
+                            %d, %Y") }}
+                        </div>
                         {% endif %}
                     </div>
                 </a>
@@ -60,12 +64,14 @@
                             <div class="day-label">{{ user_day.day.unlocks_at.format("%b %Y") }}</div>
                         </div>
                         {% elif status.as_str() == "locked" %}
-                        <a href="/calendar/{{ rich_cal.calendar.calendar.id }}/day/{{ user_day.day.id }}" class="day-card day-locked">
+                        <a class="day-card day-locked"
+                           href="/calendar/{{ rich_cal.calendar.calendar.id }}/day/{{ user_day.day.id }}">
                             <div class="day-number">{{ user_day.day.unlocks_at.format("%d") }}</div>
                             <div class="day-label">{{ user_day.day.unlocks_at.format("%b %Y") }}</div>
                         </a>
                         {% else %}
-                        <a href="/calendar/{{ rich_cal.calendar.calendar.id }}/day/{{ user_day.day.id }}" class="day-card day-unlocked">
+                        <a class="day-card day-unlocked"
+                           href="/calendar/{{ rich_cal.calendar.calendar.id }}/day/{{ user_day.day.id }}">
                             <div class="day-number">{{ user_day.day.unlocks_at.format("%d") }}</div>
                             <div class="day-label">{{ user_day.unlocked_at.unwrap().format("%b %Y") }}</div>
                         </a>
@@ -78,19 +84,25 @@
             {% endfor %}
             {% endif %}
 
-            <a href="/calendar/create" class="create-calendar-link">＋ Create New Calendar</a>
+            <a class="create-calendar-link" href="/calendar/create">＋ Create New Calendar</a>
         </div>
     </main>
 
+    <div class="text-center mt-2">
+        <small class="footer-note">
+            Logged in as <span class="user-highlight">{{ user.username }}</span>.
+            <a class="link-underline link-underline-opacity-0" href="/" style="color:#ffd9b3;">Go back</a>
+        </small>
+    </div>
     <footer class="container-fluid text-center pb-4">
         <small class="footer-note">Made with 💛 by Alex</small>
     </footer>
 </div>
 
 <script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        crossorigin="anonymous"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-        crossorigin="anonymous">
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
 </script>
 </body>
 </html>

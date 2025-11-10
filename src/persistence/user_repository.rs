@@ -124,4 +124,63 @@ impl UserRepository {
             .unwrap();
         (content_key, cypher, salt)
     }
+
+    fn get_content_cypher_and_salt(
+        master_key: &[u8; 32],
+        content_key: &[u8],
+    ) -> (Vec<u8>, [u8; 12]) {
+        let salt: [u8; 12] = random();
+        let cypher = ChaCha20Poly1305::new(master_key.into())
+            .encrypt(&salt.into(), content_key)
+            .unwrap();
+        (cypher, salt)
+    }
+
+    pub async fn change_password(
+        &self,
+        user: &User,
+        old_password: &str,
+        new_password: &str,
+    ) -> Result<(), String> {
+        let res = sqlx::query!(r#"select  id, username, role as "role:UserRole", password_hash, master_key_salt, content_key_salt, content_key_encr
+                                from users where username = ($1)"#, user.username)
+            .fetch_optional(&self.db_pool)
+            .await
+            .map_err(|_| "Database connection failed")?
+            .ok_or("Couldn't find this user")?;
+
+        Argon2::default()
+            .verify_password(
+                old_password.as_bytes(),
+                &PasswordHash::new(&res.password_hash)
+                    .map_err(|_| "Invalid password_hash from database")?,
+            )
+            .map_err(|_| "Invalid credentials")?;
+
+        let master_key = Self::get_master_key_with_salt(&old_password, &res.master_key_salt);
+        let content_key =
+            Self::decrypt_content_key(&master_key, &res.content_key_encr, &res.content_key_salt)?;
+
+        let (new_master, new_master_salt) = Self::get_master_key_and_salt(new_password);
+        let (content_cypher, content_salt) =
+            Self::get_content_cypher_and_salt(&new_master, &content_key);
+
+        sqlx::query!(
+            "update users set
+                password_hash = $1, 
+                master_key_salt = $2,
+                content_key_encr = $3,
+                content_key_salt = $4
+            where id = $5",
+            Self::hash_password(&new_password),
+            &new_master_salt,
+            &content_cypher,
+            &content_salt,
+            user.id
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| format!("There was an error updating the database: {:?}", e))
+        .map(|_| {})
+    }
 }

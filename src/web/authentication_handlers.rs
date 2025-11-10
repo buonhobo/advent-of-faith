@@ -1,7 +1,9 @@
 use crate::model::app_state::AppState;
-use crate::model::user::UserRole;
+use crate::model::user::{User, UserRole};
 use crate::persistence::user_repository::LoginCredentials;
-use crate::templates::authentication_templates::{LoginTemplate, SignupTemplate};
+use crate::templates::authentication_templates::{
+    ChangePassTemplate, LoginTemplate, SignupTemplate,
+};
 use askama::Template;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -144,4 +146,49 @@ fn get_cookie(token: String) -> Cookie<'static> {
         .expires(Expiration::Session)
         .same_site(SameSite::Strict)
         .build()
+}
+
+pub async fn change_pass_get() -> Result<Response, StatusCode> {
+    ChangePassTemplate::empty()
+        .render()
+        .map(|v| Html(v).into_response())
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+#[derive(Deserialize, Clone)]
+pub struct ChangePasswordForm {
+    old_password: String,
+    new_password: String,
+}
+pub async fn change_pass_post(
+    State(state): State<AppState>,
+    jar: CookieJar,
+    user: User,
+    Form(form): Form<ChangePasswordForm>,
+) -> Result<Response, StatusCode> {
+    let res: Result<(), String> = state
+        .user_repository
+        .read()
+        .await
+        .change_password(&user, &form.old_password, &form.new_password)
+        .await;
+
+    let session_id = jar.get("token").ok_or(StatusCode::BAD_REQUEST)?.value();
+    let uuid = Uuid::parse_str(&session_id).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    state
+        .session_store
+        .write()
+        .await
+        .expire_session(uuid)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match res {
+        Ok(()) => Ok(Redirect::to("/").into_response()),
+        Err(message) => ChangePassTemplate::with_message(message)
+            .render()
+            .map(|v| Html(v).into_response())
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update day_content set content = $1, content_salt = $2 where day_id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Bytea",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "44b738587db031a43569ea5dd20905fe95fc5cf0b37b37ca0efc3a69e1ac25cb"
+}

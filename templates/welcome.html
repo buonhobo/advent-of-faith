@@ -47,8 +47,9 @@
             {% if let Some(user) = user %}
             <div class="text-center mt-2">
                 <small class="footer-note">
-                    Logged in as <span class="user-highlight">{{ user.username }}</span>.
-                    <a href="/logout" class="link-underline link-underline-opacity-0" style="color:#ffd9b3;">Log out</a>
+                    Logged in as <span class="user-highlight">{{ user.username }}</span>. <br>
+                    <a href="/logout" class="link-underline link-underline-opacity-0" style="color:#ffd9b3;">Log out</a> or
+                    <a href="/change-password" class="link-underline link-underline-opacity-0" style="color:#ffd9b3;">Change password</a>
                 </small>
             </div>
             {% endif %}

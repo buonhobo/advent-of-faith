@@ -1,7 +1,10 @@
 use chacha20poly1305::aead::Aead;
 use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
 use chrono::{DateTime, Utc};
+use hkdf::Hkdf;
+use rand::random;
 use serde::Deserialize;
+use sha2::Sha256;
 use std::fmt::Display;
 
 #[derive(Deserialize)]
@@ -78,30 +81,77 @@ pub struct RichUserCalendar {
 pub struct UserDay {
     pub day: CalendarDay,
     pub unlocked_at: Option<DateTime<Utc>>,
-    day_key: Option<Vec<u8>>,
+    pub day_key_handler: KeyHandler,
+}
+
+#[derive(Debug, Clone)]
+pub struct KeyHandler {
+    key: Option<Vec<u8>>,
+}
+
+impl KeyHandler {
+    pub fn empty() -> Self {
+        KeyHandler { key: None }
+    }
+    pub fn from_key(key: Vec<u8>) -> KeyHandler {
+        KeyHandler { key: Some(key) }
+    }
+
+    pub fn from_random(size: usize) -> KeyHandler {
+        let key = (0..size).map(|_| random()).collect();
+        KeyHandler { key: Some(key) }
+    }
+
+    pub fn from_optional_key(key: Option<Vec<u8>>) -> KeyHandler {
+        KeyHandler { key }
+    }
+
+    pub fn from_pass(password: &str, context: &str) -> KeyHandler {
+        KeyHandler {
+            key: Some(Self::get_key_from_string(password, context)),
+        }
+    }
+
+    fn get_key_from_string(string: &str, context: &str) -> Vec<u8> {
+        let mut key = [0u8; 32];
+        let hk = Hkdf::<Sha256>::new(None, string.as_bytes());
+        hk.expand(context.as_bytes(), &mut key).unwrap(); // Should never fail since lengths are always the same
+        key.to_vec()
+    }
+
+    fn get_key(&self) -> Result<Vec<u8>, String> {
+        self.key.clone().ok_or(String::from("key empty"))
+    }
+
+    pub fn decrypt(&self, cypher: &[u8], salt: &[u8]) -> Result<Vec<u8>, String> {
+        let cypher = ChaCha20Poly1305::new(self.get_key()?.as_slice().into())
+            .decrypt(salt.into(), cypher)
+            .map_err(|e| format!("Decryption failed, the key is probably outdated: {:?}", e))?;
+        Ok(cypher)
+    }
+
+    pub fn encrypt(&self, secret: &[u8], salt: &[u8]) -> Result<Vec<u8>, String> {
+        let cypher = ChaCha20Poly1305::new(self.get_key()?.as_slice().into())
+            .encrypt(salt.into(), secret)
+            .unwrap();
+        Ok(cypher)
+    }
+
+    pub fn get_encrypted_key(&self, encryption_key: &Self, salt: &[u8]) -> Result<Vec<u8>, String> {
+        encryption_key.encrypt(&self.get_key()?, salt)
+    }
 }
 
 impl UserDay {
     pub fn new(
         day: CalendarDay,
         unlocked_at: Option<DateTime<Utc>>,
-        day_key: Option<Vec<u8>>,
+        key_handler: KeyHandler,
     ) -> Self {
         UserDay {
             unlocked_at,
-            day_key,
+            day_key_handler: key_handler,
             day,
         }
-    }
-
-    pub fn get_decryption_key(&self, cypher: &[u8], salt: &[u8]) -> Result<Vec<u8>, String> {
-        let key = self.day_key.clone().ok_or(format!(
-            "there is no decryption key for day {}",
-            self.day.id
-        ))?;
-        let cypher = ChaCha20Poly1305::new(key.as_slice().into())
-            .decrypt(salt.into(), cypher)
-            .map_err(|e| format!("Decryption failed, the key is probably outdated: {:?}", e))?;
-        Ok(cypher)
     }
 }

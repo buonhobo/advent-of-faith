@@ -1,3 +1,4 @@
+use crate::model::calendar::KeyHandler;
 use sqlx::{FromRow, Type};
 
 #[derive(Clone, Debug, Type)]
@@ -12,7 +13,7 @@ pub struct User {
     pub id: i32,
     pub username: String,
     pub role: UserRole,
-    pub content_key: Vec<u8>,
+    pub content_key_handler: KeyHandler,
     pub master_key_salt: Vec<u8>,
 }
 
@@ -28,7 +29,7 @@ impl User {
             id,
             username,
             role,
-            content_key,
+            content_key_handler: KeyHandler::from_key(content_key),
             master_key_salt,
         }
     }

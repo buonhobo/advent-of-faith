@@ -213,3 +213,73 @@ pub async fn delete_day_post(
 
     Ok(output)
 }
+
+#[derive(Deserialize)]
+pub struct ChangeContentForm {
+    pub content: String,
+}
+pub async fn edit_post(
+    State(state): State<AppState>,
+    user_calendar: UserCalendar,
+    user_day: UserDay,
+    user: User,
+    Form(form): Form<ChangeContentForm>,
+) -> Result<Response, Response> {
+    let res = state
+        .calendar_service
+        .edit_content(&user_calendar, &user_day, &user, form.content)
+        .await;
+
+    let output = match res {
+        Ok(_) => Redirect::to(&format!(
+            "/calendar/{}/day/{}",
+            user_calendar.calendar.id, user_day.day.id
+        ))
+        .into_response(),
+        Err(e) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(e)
+            .unwrap()
+            .into_response(),
+    };
+
+    Ok(output)
+}
+
+#[derive(Deserialize)]
+pub struct ChangePassForm {
+    pub password: Option<String>,
+}
+pub async fn edit_pass_post(
+    State(state): State<AppState>,
+    user_calendar: UserCalendar,
+    user_day: UserDay,
+    user: User,
+    Form(form): Form<ChangePassForm>,
+) -> Result<Response, Response> {
+    let res = state
+        .calendar_service
+        .edit_password(
+            &user_calendar,
+            &user_day,
+            &user,
+            form.password
+                .and_then(|p| if p.is_empty() { None } else { Some(p) }),
+        )
+        .await;
+
+    let output = match res {
+        Ok(_) => Redirect::to(&format!(
+            "/calendar/{}/day/{}",
+            user_calendar.calendar.id, user_day.day.id
+        ))
+        .into_response(),
+        Err(e) => Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(e)
+            .unwrap()
+            .into_response(),
+    };
+
+    Ok(output)
+}

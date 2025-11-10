@@ -17,21 +17,80 @@ use tokio::sync::{RwLock, RwLockReadGuard};
 pub struct CalendarService {
     repo: Arc<RwLock<CalendarRepository>>,
 }
-
 impl CalendarService {
     async fn get_user_calendar(&self, cal_id: i32, user: &User) -> Result<UserCalendar, String> {
         self.get_repo().await.get_user_calendar(cal_id, user).await
     }
 
-    async fn get_user_day(&self, day_id: i32, user: &User) -> Result<UserDay, String> {
+    async fn get_user_day(
+        &self,
+        user_calendar: &UserCalendar,
+        day_id: i32,
+        user: &User,
+    ) -> Result<UserDay, String> {
         self.get_repo()
             .await
-            .get_user_day_with_key(day_id, user)
+            .get_user_day_with_key(user_calendar, day_id, user)
             .await
     }
 }
 
 impl CalendarService {
+    pub async fn edit_content(
+        &self,
+        user_calendar: &UserCalendar,
+        user_day: &UserDay,
+        user: &User,
+        content: String,
+    ) -> Result<(), String> {
+        if user.id != user_calendar.calendar.owner_id {
+            return Err(format!(
+                "user {} cannot is not the owner of day {}",
+                user.username, user_day.day.id
+            ));
+        }
+
+        self.get_repo().await.edit_content(user_day, content).await
+    }
+
+    pub async fn edit_password(
+        &self,
+        user_calendar: &UserCalendar,
+        user_day: &UserDay,
+        user: &User,
+        password: Option<String>,
+    ) -> Result<(), String> {
+        if user.id != user_calendar.calendar.owner_id {
+            return Err(format!(
+                "user {} cannot is not the owner of day {}",
+                user.username, user_day.day.id
+            ));
+        }
+
+        match password {
+            Some(password) => {
+                if user_day.day.protected {
+                    self.get_repo()
+                        .await
+                        .update_password(user_day, user, &password)
+                        .await
+                } else {
+                    self.get_repo()
+                        .await
+                        .set_password(user_day, user, &password)
+                        .await
+                }
+            }
+            None => {
+                if user_day.day.protected {
+                    self.get_repo().await.remove_password(user_day).await
+                } else {
+                    Ok(())
+                }
+            }
+        }
+    }
+
     pub async fn unlock_day(
         &self,
         user_day: &UserDay,
@@ -172,7 +231,7 @@ pub async fn add_calendar(
         .calendar_service
         .get_user_calendar(calendar_id, &user)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|_| StatusCode::NOT_FOUND)?;
     req.extensions_mut().insert(cal);
     Ok(next.run(req).await)
 }
@@ -199,15 +258,16 @@ pub struct CalendarDayPath {
 pub async fn add_calendar_day(
     State(state): State<AppState>,
     Path(CalendarDayPath { day_id }): Path<CalendarDayPath>,
+    user_calendar: UserCalendar,
     user: User,
     mut req: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
     let cal = state
         .calendar_service
-        .get_user_day(day_id, &user)
+        .get_user_day(&user_calendar, day_id, &user)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|_| StatusCode::NOT_FOUND)?;
     req.extensions_mut().insert(cal);
     Ok(next.run(req).await)
 }

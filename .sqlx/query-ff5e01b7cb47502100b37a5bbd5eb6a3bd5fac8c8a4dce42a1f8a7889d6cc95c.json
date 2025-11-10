@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update user_days\n                        set day_key_encr = null, day_key_salt = null\n                        where day_id = $1 ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ff5e01b7cb47502100b37a5bbd5eb6a3bd5fac8c8a4dce42a1f8a7889d6cc95c"
+}

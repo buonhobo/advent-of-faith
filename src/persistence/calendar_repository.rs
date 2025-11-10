@@ -1,11 +1,9 @@
-use crate::model::calendar::{Calendar, CalendarDay, RichUserCalendar, UserCalendar, UserDay};
+use crate::model::calendar::{
+    Calendar, CalendarDay, KeyHandler, RichUserCalendar, UserCalendar, UserDay,
+};
 use crate::model::user::User;
-use chacha20poly1305::aead::Aead;
-use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
 use chrono::{DateTime, Utc};
-use hkdf::Hkdf;
 use rand::random;
-use sha2::Sha256;
 use sqlx::PgPool;
 use std::collections::HashMap;
 
@@ -115,7 +113,7 @@ impl CalendarRepository {
                     calendar_id: record.calendar_id,
                     protected: record.protected,
                 };
-                let user_day = UserDay::new(day, record.unlocked_at, None);
+                let user_day = UserDay::new(day, record.unlocked_at, KeyHandler::empty());
                 user_day
             })
             .collect();
@@ -123,34 +121,35 @@ impl CalendarRepository {
         Ok(user_days)
     }
 
-    pub async fn get_user_day_with_key(&self, day_id: i32, user: &User) -> Result<UserDay, String> {
+    pub async fn get_user_day_with_key(
+        &self,
+        user_calendar: &UserCalendar,
+        day_id: i32,
+        user: &User,
+    ) -> Result<UserDay, String> {
         let record = sqlx::query!(
             r#"
             SELECT unlocked_at, unlocks_at, cd.calendar_id, cd.id as day_id, protected, day_key_salt, day_key_encr
             FROM calendar_days as cd
             LEFT JOIN (SELECT * FROM user_days WHERE user_id = $2) as ud ON cd.id = ud.day_id
-            WHERE cd.id = $1
+            WHERE cd.id = $1 AND cd.calendar_id = $3
             "#,
             day_id,
-            user.id
+            user.id,
+            user_calendar.calendar.id
         )
-            .fetch_optional(&self.db_pool)
+            .fetch_one(&self.db_pool)
             .await
-            .map_err(|e| e.to_string())?;
-
-        let Some(record) = record else {
-            return Err(format!("Calendar day {} not found", day_id));
-        };
+            .map_err(|e| format!("Calendar day {} not found: {}", day_id, e.to_string()))?;
 
         let day_key = if record.protected && record.unlocked_at.is_some() {
-            let key = Self::get_day_key(
-                user,
-                record
-                    .day_key_salt
-                    .ok_or(format!("Calendar day {} salt not found", day_id))?,
-                record
+            let key = user.content_key_handler.decrypt(
+                &record
                     .day_key_encr
                     .ok_or(format!("Calendar day {} cypher not found", day_id))?,
+                &record
+                    .day_key_salt
+                    .ok_or(format!("Calendar day {} salt not found", day_id))?,
             );
             Some(key?)
         } else {
@@ -163,7 +162,11 @@ impl CalendarRepository {
             unlocks_at: record.unlocks_at,
             protected: record.protected,
         };
-        let user_day = UserDay::new(calendar_day, record.unlocked_at, day_key);
+        let user_day = UserDay::new(
+            calendar_day,
+            record.unlocked_at,
+            KeyHandler::from_optional_key(day_key),
+        );
         Ok(user_day)
     }
 
@@ -182,10 +185,10 @@ impl CalendarRepository {
             cal_id,
             user.id
         )
-            .fetch_optional(&self.db_pool)
+            .fetch_one(&self.db_pool)
             .await;
 
-        let Ok(Some(record)) = record else {
+        let Ok(record) = record else {
             return Err(format!("Calendar {} not found", cal_id));
         };
 
@@ -201,18 +204,6 @@ impl CalendarRepository {
         Ok(user_cal)
     }
 
-    fn get_day_key(
-        user: &User,
-        day_key_salt: Vec<u8>,
-        day_key_encr: Vec<u8>,
-    ) -> Result<Vec<u8>, String> {
-        let dk = ChaCha20Poly1305::new(user.content_key.as_slice().into())
-            .decrypt(day_key_salt.as_slice().into(), day_key_encr.as_slice())
-            .map_err(|e| e.to_string())?;
-
-        Ok(dk)
-    }
-
     pub async fn get_content(&self, user_day: &UserDay) -> Result<String, String> {
         let record = sqlx::query!(
             "SELECT decryption_key_salt, content_salt, content, decryption_key_encr
@@ -224,7 +215,7 @@ impl CalendarRepository {
         .fetch_optional(&self.db_pool)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or(format!("There us no content for day {}", user_day.day.id))?;
+        .ok_or(format!("There is no content for day {}", user_day.day.id))?;
 
         let content = if user_day.day.protected {
             let decr_key_salt = record
@@ -236,8 +227,11 @@ impl CalendarRepository {
             let content_salt = record
                 .content_salt
                 .ok_or("The content is protected but there is no content salt")?;
-            let decryption_key = user_day.get_decryption_key(&decr_key_encr, &decr_key_salt)?;
-            Self::decrypt_content(&decryption_key, &record.content, &content_salt)?
+            let decryption_key = user_day
+                .day_key_handler
+                .decrypt(&decr_key_encr, &decr_key_salt)?;
+            let decryption_key = KeyHandler::from_key(decryption_key);
+            decryption_key.decrypt(&record.content, &content_salt)?
         } else {
             record.content
         };
@@ -245,28 +239,6 @@ impl CalendarRepository {
         let content = String::from_utf8(content).map_err(|e| e.to_string())?;
 
         Ok(content)
-    }
-
-    fn decrypt_content(
-        decryption_key: &[u8],
-        cypher: &[u8],
-        salt: &[u8],
-    ) -> Result<Vec<u8>, String> {
-        let cypher = ChaCha20Poly1305::new(decryption_key.into())
-            .decrypt(salt.into(), cypher)
-            .map_err(|e| format!("Decryption failed, the key is probably outdated: {:?}", e))?;
-        Ok(cypher)
-    }
-
-    fn encrypt_content(
-        decryption_key: &[u8],
-        plain: &[u8],
-        salt: &[u8],
-    ) -> Result<Vec<u8>, String> {
-        let cypher = ChaCha20Poly1305::new(decryption_key.into())
-            .encrypt(salt.into(), plain)
-            .map_err(|e| format!("Encryption failed: {:?}", e))?;
-        Ok(cypher)
     }
 
     pub async fn get_dashboard_data(&self, user: &User) -> Result<Vec<RichUserCalendar>, String> {
@@ -315,14 +287,17 @@ impl CalendarRepository {
         let content_salt_opt;
         let content_bytes;
         if let Some(password) = password {
-            protected = true;
-            let day_key = Self::generate_day_key(&password);
-            let (day_salt, day_cypher) = Self::encrypt_day_key(&day_key, &user.content_key);
-            let (dec_key, dec_cypher, dec_salt) =
-                Self::get_decryption_key_cypher_and_salt(&day_key);
+            let day_key_handler = KeyHandler::from_pass(&password, "day key");
+            let day_salt: [u8; 12] = random();
+            let day_cypher =
+                day_key_handler.get_encrypted_key(&user.content_key_handler, &day_salt)?;
+            let dec_salt: [u8; 12] = random();
+            let dec_key_handler = KeyHandler::from_random(32);
+            let dec_cypher = dec_key_handler.get_encrypted_key(&day_key_handler, &dec_salt)?;
             let content_salt: [u8; 12] = random();
-            let content = Self::encrypt_content(&dec_key, &content.as_bytes(), &content_salt)?;
+            let content = dec_key_handler.encrypt(&content.as_bytes(), &content_salt)?;
 
+            protected = true;
             day_salt_opt = Some(day_salt.to_vec());
             dec_salt_opt = Some(dec_salt.to_vec());
             content_salt_opt = Some(content_salt.to_vec());
@@ -374,30 +349,6 @@ impl CalendarRepository {
         Ok(())
     }
 
-    fn generate_day_key(password: &str) -> [u8; 32] {
-        let mut day_key = [0u8; 32];
-        let hk = Hkdf::<Sha256>::new(None, password.as_bytes());
-        hk.expand(b"day key", &mut day_key).unwrap(); // Should never fail since lengths are always the same
-        day_key
-    }
-
-    fn encrypt_day_key(day_key: &[u8], content_key: &[u8]) -> ([u8; 12], Vec<u8>) {
-        let day_key_salt: [u8; 12] = random();
-        let day_key_encr = ChaCha20Poly1305::new(content_key.into())
-            .encrypt(&day_key_salt.into(), day_key)
-            .unwrap();
-        (day_key_salt, day_key_encr)
-    }
-
-    fn get_decryption_key_cypher_and_salt(master_key: &[u8; 32]) -> ([u8; 32], Vec<u8>, [u8; 12]) {
-        let content_key: [u8; 32] = random();
-        let salt: [u8; 12] = random();
-        let cypher = ChaCha20Poly1305::new(master_key.into())
-            .encrypt(&salt.into(), content_key.as_slice())
-            .unwrap();
-        (content_key, cypher, salt)
-    }
-
     pub async fn unlock_day(
         &self,
         user: &User,
@@ -410,18 +361,24 @@ impl CalendarRepository {
                 where day_id = $1",
             user_day.day.id
         )
-        .fetch_optional(&self.db_pool)
+        .fetch_one(&self.db_pool)
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or("This day does not exist or it can't be unlocked yet")?;
+        .map_err(|e| {
+            format!(
+                "This day does not exist or it can't be unlocked yet: {}",
+                e.to_string()
+            )
+        })?;
 
         let (dks, dke) = if let (Some(dke), Some(dks)) =
             (record.decryption_key_encr, record.decryption_key_salt)
         {
             let code = code.ok_or(String::from("A code is required for this day"))?;
-            let day_key = Self::generate_day_key(&code);
-            Self::decrypt_content(&day_key, &dke, &dks)?;
-            let (day_key_salt, day_key_encr) = Self::encrypt_day_key(&day_key, &user.content_key);
+            let day_key = KeyHandler::from_pass(&code, "day key");
+            day_key.decrypt(&dke, &dks)?;
+            let day_key_salt: [u8; 12] = random();
+            let day_key_encr =
+                day_key.get_encrypted_key(&user.content_key_handler, &day_key_salt)?;
             (Some(day_key_salt.to_vec()), Some(day_key_encr))
         } else {
             (None, None)
@@ -450,5 +407,288 @@ impl CalendarRepository {
         .await
         .map_err(|e| e.to_string())
         .map(|_| ())
+    }
+
+    pub async fn edit_content(&self, user_day: &UserDay, content: String) -> Result<(), String> {
+        let (salt, content) = if user_day.day.protected {
+            let record = sqlx::query!(
+                "SELECT decryption_key_encr, decryption_key_salt
+            FROM day_content
+            WHERE day_id = $1",
+                user_day.day.id
+            )
+            .fetch_one(&self.db_pool)
+            .await
+            .map_err(|e| {
+                format!(
+                    "There is no content for day {}: {}",
+                    user_day.day.id,
+                    e.to_string()
+                )
+            })?;
+
+            let decr_key_salt = record
+                .decryption_key_salt
+                .ok_or("The content is protected but there is no decryption key salt")?;
+            let decr_key_encr = record
+                .decryption_key_encr
+                .ok_or("The content is protected but there is no decryption key cypher")?;
+            let decryption_key = user_day
+                .day_key_handler
+                .decrypt(&decr_key_encr, &decr_key_salt)?;
+            let decryption_key = KeyHandler::from_key(decryption_key);
+            let content_salt: [u8; 12] = random();
+            let content = decryption_key.encrypt(&content.as_bytes(), &content_salt)?;
+
+            (Some(content_salt.to_vec()), content)
+        } else {
+            (None, content.as_bytes().to_vec())
+        };
+
+        sqlx::query!(
+            "update day_content set content = $1, content_salt = $2 where day_id = $3",
+            content,
+            salt,
+            user_day.day.id
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| e.to_string())
+        .map(|_| ())
+    }
+
+    pub async fn update_password(
+        &self,
+        user_day: &UserDay,
+        user: &User,
+        password: &str,
+    ) -> Result<(), String> {
+        let new_day_key = KeyHandler::from_pass(&password, "day key");
+        let new_day_salt: [u8; 12] = random();
+        let new_day_cypher =
+            new_day_key.get_encrypted_key(&user.content_key_handler, &new_day_salt)?;
+
+        let record = sqlx::query!(
+            "SELECT decryption_key_encr, decryption_key_salt
+            FROM day_content
+            WHERE day_id = $1",
+            user_day.day.id
+        )
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| {
+            format!(
+                "There is no content for day {}: {}",
+                user_day.day.id,
+                e.to_string()
+            )
+        })?;
+
+        let decr_key_salt = record
+            .decryption_key_salt
+            .ok_or("The content is protected but there is no decryption key salt")?;
+        let decr_key_cypher = record
+            .decryption_key_encr
+            .ok_or("The content is protected but there is no decryption key cypher")?;
+        let dec_key = user_day
+            .day_key_handler
+            .decrypt(&decr_key_cypher, &decr_key_salt)?;
+        let dec_key = KeyHandler::from_key(dec_key);
+        let decr_key_salt: [u8; 12] = random();
+        let decr_key_cypher = dec_key.get_encrypted_key(&new_day_key, &decr_key_salt)?;
+
+        let tx = self.db_pool.begin().await.map_err(|e| e.to_string())?;
+
+        sqlx::query!(
+            "update day_content 
+                        set decryption_key_encr = $1, decryption_key_salt = $2 
+                        where day_id = $3",
+            decr_key_cypher,
+            decr_key_salt.to_vec(),
+            user_day.day.id
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        sqlx::query!(
+            "update user_days
+                        set day_key_encr = $1, day_key_salt = $2
+                        where day_id = $3 and user_id = $4",
+            new_day_cypher,
+            new_day_salt.to_vec(),
+            user_day.day.id,
+            user.id
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        sqlx::query!(
+            "delete from user_days
+                        where day_id = $1 and user_id != $2",
+            user_day.day.id,
+            user.id
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().await.map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
+
+    pub async fn set_password(
+        &self,
+        user_day: &UserDay,
+        user: &User,
+        password: &str,
+    ) -> Result<(), String> {
+        let record = sqlx::query!(
+            "SELECT content from day_content where day_id = $1",
+            user_day.day.id
+        )
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| {
+            format!(
+                "There is no content for day {}: {}",
+                user_day.day.id,
+                e.to_string()
+            )
+        })?;
+        let content = String::from_utf8(record.content).map_err(|e| e.to_string())?;
+        let new_day_key = KeyHandler::from_pass(&password, "day key");
+        let new_day_salt: [u8; 12] = random();
+        let new_day_cypher =
+            new_day_key.get_encrypted_key(&user.content_key_handler, &new_day_salt)?;
+        let dec_key = KeyHandler::from_random(32);
+        let decr_key_salt: [u8; 12] = random();
+        let decr_key_cypher = dec_key.get_encrypted_key(&new_day_key, &decr_key_salt)?;
+        let content_salt: [u8; 12] = random();
+        let content_cypher = dec_key.encrypt(&content.as_bytes(), &content_salt)?;
+
+        let tx = self.db_pool.begin().await.map_err(|e| e.to_string())?;
+
+        sqlx::query!(
+            "update day_content 
+                        set decryption_key_encr = $1, decryption_key_salt = $2, content = $3, content_salt = $4 
+                        where day_id = $5",
+            decr_key_cypher,
+            decr_key_salt.to_vec(),
+            content_cypher,
+            content_salt.to_vec(),
+            user_day.day.id
+        )
+            .execute(&self.db_pool)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        sqlx::query!(
+            "update user_days 
+                        set day_key_encr = $1, day_key_salt = $2 
+                        where day_id = $3 and user_id = $4",
+            new_day_cypher,
+            new_day_salt.to_vec(),
+            user_day.day.id,
+            user.id
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        sqlx::query!(
+            "delete from user_days
+                        where day_id = $1 and user_id != $2",
+            user_day.day.id,
+            user.id
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        sqlx::query!(
+            "update calendar_days 
+                        set protected = true
+                        where id = $1",
+            user_day.day.id
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().await.map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
+    pub async fn remove_password(&self, user_day: &UserDay) -> Result<(), String> {
+        let record = sqlx::query!(
+            "SELECT decryption_key_encr, decryption_key_salt, content_salt, content
+            FROM day_content
+            WHERE day_id = $1",
+            user_day.day.id
+        )
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| {
+            format!(
+                "There is no content for day {}: {}",
+                user_day.day.id,
+                e.to_string()
+            )
+        })?;
+
+        let decr_key_salt = record
+            .decryption_key_salt
+            .ok_or("The content is protected but there is no decryption key salt")?;
+        let content_salt = record
+            .content_salt
+            .ok_or("The content is protected but there is no content salt")?;
+        let decr_key_cypher = record
+            .decryption_key_encr
+            .ok_or("The content is protected but there is no decryption key cypher")?;
+        let dec_key = user_day
+            .day_key_handler
+            .decrypt(&decr_key_cypher, &decr_key_salt)?;
+        let dec_key = KeyHandler::from_key(dec_key);
+        let content = dec_key.decrypt(&record.content, &content_salt)?;
+
+        let tx = self.db_pool.begin().await.map_err(|e| e.to_string())?;
+
+        sqlx::query!(
+            "update day_content
+                        set decryption_key_encr = null, decryption_key_salt = null, content = $1, content_salt = null
+                        where day_id = $2",
+            content,
+            user_day.day.id
+        )
+            .execute(&self.db_pool)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        sqlx::query!(
+            "update user_days
+                        set day_key_encr = null, day_key_salt = null
+                        where day_id = $1 ",
+            user_day.day.id
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        sqlx::query!(
+            "update calendar_days
+                        set protected = false
+                        where id = $1",
+            user_day.day.id
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().await.map_err(|e| e.to_string())?;
+
+        Ok(())
     }
 }

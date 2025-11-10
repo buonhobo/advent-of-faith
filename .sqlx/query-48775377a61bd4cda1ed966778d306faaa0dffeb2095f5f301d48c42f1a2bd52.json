@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from user_days\n                        where day_id = $1 and user_id != $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "48775377a61bd4cda1ed966778d306faaa0dffeb2095f5f301d48c42f1a2bd52"
+}

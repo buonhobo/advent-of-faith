@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update day_content \n                        set decryption_key_encr = $1, decryption_key_salt = $2, content = $3, content_salt = $4 \n                        where day_id = $5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Bytea",
+        "Bytea",
+        "Bytea",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9b843b840d9d8fcc9c4678806f2859580bb63e0d07dfe71afaa549bda0028e50"
+}

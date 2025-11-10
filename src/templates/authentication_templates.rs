@@ -44,3 +44,22 @@ impl SignupTemplate {
         }
     }
 }
+
+#[derive(Template)]
+#[template(path = "authentication/change-password.html")]
+pub struct ChangePassTemplate {
+    status_message: Option<String>,
+}
+impl ChangePassTemplate {
+    pub fn with_message(message: String) -> Self {
+        Self {
+            status_message: Some(message),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            status_message: None,
+        }
+    }
+}

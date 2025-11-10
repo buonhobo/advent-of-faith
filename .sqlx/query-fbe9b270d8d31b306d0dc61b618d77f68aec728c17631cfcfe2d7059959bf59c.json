@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT decryption_key_encr, decryption_key_salt\n            FROM day_content\n            WHERE day_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "decryption_key_encr",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 1,
+        "name": "decryption_key_salt",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "fbe9b270d8d31b306d0dc61b618d77f68aec728c17631cfcfe2d7059959bf59c"
+}

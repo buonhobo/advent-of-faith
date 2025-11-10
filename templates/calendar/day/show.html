@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1" name="viewport"/>
-    <title>Day — Advent of Faith</title>
+    <title>Advent of Faith | Day</title>
 
     <!-- Bootstrap 5 CSS -->
     <link
@@ -26,29 +26,64 @@
 </head>
 <body>
 <div class="wrap">
-    <main class="container d-flex align-items-center justify-content-center py-5">
+    <main class="container d-flex flex-column align-items-center justify-content-center py-5">
         <section class="card-frost p-4 p-md-5 w-100" style="max-width: 540px;">
-            <h1 class="title display-5 fw-semibold mb-4 text-center">{{ user_day.day.unlocks_at.format("%b %d %Y")
-                }}</h1>
+            <h1 class="title display-5 fw-semibold mb-4 text-center">
+                {{ user_day.day.unlocks_at.format("%b %d %Y") }}
+            </h1>
             <p class="subtitle lead mb-4 text-center">{{content}}</p>
 
-
-            <form action="/calendar/{{user_calendar.calendar.id}}" class="d-flex flex-column gap-3" method="get">
-                <div class="d-grid">
-                    <button class="btn btn-honey btn-lg px-4" type="submit">Back to calendar</button>
-                </div>
-            </form>
             {% if user_calendar.calendar.owner_id == user.id %}
+
             <form action="/calendar/{{user_calendar.calendar.id}}/day/{{user_day.day.id}}/delete"
-                  class="d-flex flex-column gap-3" method="post">
-                <div class="d-grid mt-2">
-                    <button class="btn btn-ghost btn-lg px-4 " type="submit">Delete day</button>
+                  class="d-flex flex-column gap-3 my-3" method="post">
+                <div class="d-grid">
+                    <button class="btn btn-ghost" type="submit">Delete day</button>
                 </div>
             </form>
-            {%endif%}
-        </section>
-    </main>
+            <!-- Wrapper for the two edit forms side-by-side -->
+            <div class="d-flex flex-wrap gap-3 justify-content-between">
 
+
+                <form action="/calendar/{{user_calendar.calendar.id}}/day/{{user_day.day.id}}/edit-content"
+                      class="flex-fill d-flex flex-column gap-3"
+                      method="post"
+                      style="min-width: 220px;">
+                    <input
+                            class="form-control form-control-romantic"
+                            id="content"
+                            name="content"
+                            placeholder="Content"
+                            required
+                            type="text"
+                    />
+                    <button class="btn btn-ghost" type="submit">Edit content</button>
+                </form>
+
+                <form action="/calendar/{{user_calendar.calendar.id}}/day/{{user_day.day.id}}/edit-password"
+                      class="flex-fill d-flex flex-column gap-3"
+                      method="post"
+                      style="min-width: 220px;">
+                    <input
+                            class="form-control form-control-romantic"
+                            id="password"
+                            name="password"
+                            placeholder="Password"
+                            type="password"
+                    />
+                    <button class="btn btn-ghost" type="submit">Edit password</button>
+                </form>
+            </div>
+
+
+            {% endif %}
+        </section>
+
+        <!-- Moved the "Back to calendar" link under the card -->
+        <a class="create-calendar-link mt-3" href="/calendar/{{user_calendar.calendar.id}}">
+            Back to calendar
+        </a>
+    </main>
     <footer class="container text-center pb-4">
         <small class="footer-note">Made with 💛 by Alex</small>
     </footer>

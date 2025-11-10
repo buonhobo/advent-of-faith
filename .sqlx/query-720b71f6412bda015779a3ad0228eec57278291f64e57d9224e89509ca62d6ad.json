@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update users set\n                password_hash = $1, \n                master_key_salt = $2,\n                content_key_encr = $3,\n                content_key_salt = $4\n            where id = $5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bytea",
+        "Bytea",
+        "Bytea",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "720b71f6412bda015779a3ad0228eec57278291f64e57d9224e89509ca62d6ad"
+}

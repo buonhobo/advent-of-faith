@@ -69,7 +69,7 @@ pub async fn require_logged_in(
                 .secure(true)
                 .http_only(true)
                 .expires(Expiration::Session)
-                .same_site(SameSite::Strict)
+                .same_site(SameSite::Lax)
                 .path("/")
                 .build(),
         );

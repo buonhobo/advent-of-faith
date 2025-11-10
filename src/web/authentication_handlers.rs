@@ -144,7 +144,7 @@ fn get_cookie(token: String) -> Cookie<'static> {
         .secure(true)
         .http_only(true)
         .expires(Expiration::Session)
-        .same_site(SameSite::Strict)
+        .same_site(SameSite::Lax)
         .build()
 }
 

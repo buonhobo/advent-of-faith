@@ -160,11 +160,11 @@ pub async fn unlock_post(
             user_calendar.calendar.id, user_day.day.id
         ))
         .into_response(),
-        Err(_) => Redirect::to(&format!(
-            "/calendar/{}/day/{}/unlock",
-            user_calendar.calendar.id, user_day.day.id
-        ))
-        .into_response(),
+        Err(e) => UnlockDayTemplate::new(unlock_form.code, user_day)
+            .with_message(e)
+            .render()
+            .unwrap()
+            .into_response(),
     };
 
     Ok(output)

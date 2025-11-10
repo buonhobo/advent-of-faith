@@ -77,8 +77,8 @@ impl UnlockDayTemplate {
         }
     }
 
-    pub fn with_message(mut self, message: Option<String>) -> UnlockDayTemplate {
-        self.message = message;
+    pub fn with_message(mut self, message: String) -> UnlockDayTemplate {
+        self.message = Some(message);
         self
     }
 }
